@@ -3,6 +3,11 @@
 Created on Mon Jun 13 13:19:49 2022
 
 @author: jogib
+
+TODO
+-better switch conditions
+-actual match gate
+
 """
 import itertools
 from operator import add
@@ -10,16 +15,21 @@ import numpy as np
 from quimb import *
 import matplotlib.pyplot as plt
 #%%
+
 class circuit():
     '''
-    contains the bits and mixing functions
+    contains the densop and mixing things
 
     Returns
     -------
     None.
 
     '''
-    def __init__(self, num_elems, gate = 'bell', init = 'up'):
+    def __init__(self, num_elems,
+                 gate = 'bell',
+                 init = 'up',
+                 architecture = 'brick'
+                 ):
         '''
         num_elems: number of elements in the chain
         gate: type of gate used
@@ -29,17 +39,20 @@ class circuit():
         
         architecture: arrangement of gates
             -"brick": alternating pairs
-            -staircase: each step only has one gate
+            -"staircase": each step only has one gate
         '''
         
         self.num_elems = num_elems 
-        
+        self.architecture= architecture
+
         ''' this need to be updated for different inits'''
+        
         if init == 'up':
             self.dop = computational_state("".join(['0' for x in range(self.num_elems)]),
-                                           sparse=False)
+                                           qtype='dop',sparse=False)
         elif init == 'rand':
             self.dop = rand_product_state(self.num_elems)
+            self.dop=qu(self.dop, qtype='dop')
             
         self.dims = [2] * self.num_elems
         self.gate=gate
@@ -51,8 +64,12 @@ class circuit():
         
         
     def gen_step(self,eoo):
-        self.gen_pairs(eoo)
-        print(self.pairs)
+        if self.architecture == 'brick':
+            self.gen_pairs(eoo)
+        elif self.architecture == 'staircase':
+            self.gen_staircase()
+            
+        # print(self.pairs)
         for i in self.pairs:
             self.do_operation(i)
         self.step_num = self.step_num + 1
@@ -68,19 +85,32 @@ class circuit():
         while i+2<= self.num_elems:
             self.pairs.append([i,i+1])
             i=i+2
-            
+    def gen_staircase(self):
+        self.pairs=[]
+        if (self.step_num+1)%self.num_elems == 0:
+            self.step_num = self.step_num + 1
+        self.pairs.append([self.step_num%self.num_elems,(self.step_num+1)%self.num_elems])
+        
     def do_operation(self,pair):
         
     # Needs some work
         if self.gate == 'bell':
-            print(pair[0])
+            # print(pair[0])
             had = ikron(hadamard(),[2]*self.num_elems,pair[0])
-            step1 = had@ self.dop
-            self.dop = pkron(CNOT(),[2]*self.num_elems,pair)@step1#qu(pkron(CNOT(),[2]*self.num_elems,pair)@step1,qtype='dop')
+            step1 = had@ self.dop@had.H
+            cn = pkron(CNOT(),[2]*self.num_elems,pair)
+            self.dop = cn@step1@cn.H
+            self.dop.round(4)
             
         elif self.gate == 'haar':
             haar = ikron(rand_uni(2),[2]*self.num_elems,pair)
-            self.dop = haar@ self.dop
+            self.dop = haar@ self.dop@ haar.H
+            self.dop.round(4)
+        
+        elif self.gate == 'match':
+            match = ikron(swap(2),[2]*self.num_elems,pair)
+            self.dop = match@ self.dop@ match.H
+            self.dop.round(4)
         
     def mutinfo(self,target = 0):
         #this is mem bad
@@ -96,14 +126,14 @@ class circuit():
         return arr
             
 #%%
-circ=circuit(6,gate='bell',init='up')
-arr = circ.mut_info_array_gen(6,1)
+circ=circuit(8,gate='match',init='rand',architecture='brick')
+arr = circ.mut_info_array_gen(32,0)
 
 
 
 #%%
-plt.imshow(arr)
-plt.title("Mutual Information with site 1")
+plt.imshow(np.log(np.array(arr).round(3)))
+plt.title("Mutual Information with site 0")
 plt.ylabel("step number")
 plt.xlabel("site number")
 plt.colorbar()

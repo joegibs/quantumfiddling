@@ -42,14 +42,14 @@ for i in range(10):
 circ
 
 #%%
-num_elems = 20
+num_elems = 10
 
 circ = qtn.Circuit(N=num_elems)
 
 for i in range(num_elems):
     circ.apply_gate('H', i, gate_round=0)
 
-for r in range(1, 20):
+for r in range(1, 10):
 
     # even pairs
     for i in range(0, num_elems, 2):
