@@ -15,6 +15,10 @@ import numpy as np
 from quimb import *
 import matplotlib.pyplot as plt
 #%%
+match = np.array([[0.5,0,0,0.5],
+                  [0,0.5,0.5,0],
+                  [0,0.5,0.5,0],
+                  [0.5,0,0,0.5]])
 
 class circuit():
     '''
@@ -49,7 +53,7 @@ class circuit():
         
         if init == 'up':
             self.dop = computational_state("".join(['0' for x in range(self.num_elems)]),
-                                           qtype='dop',sparse=False)
+                                           qtype='dop',sparse=True)
         elif init == 'rand':
             self.dop = rand_product_state(self.num_elems)
             self.dop=qu(self.dop, qtype='dop')
@@ -108,8 +112,8 @@ class circuit():
             self.dop.round(4)
         
         elif self.gate == 'match':
-            match = ikron(swap(2),[2]*self.num_elems,pair)
-            self.dop = match@ self.dop@ match.H
+            mat = ikron(match,[2]*self.num_elems,pair)
+            self.dop = mat@ self.dop@ mat.H
             self.dop.round(4)
         
     def mutinfo(self,target = 0):
@@ -126,8 +130,8 @@ class circuit():
         return arr
             
 #%%
-circ=circuit(8,gate='match',init='rand',architecture='brick')
-arr = circ.mut_info_array_gen(32,0)
+circ=circuit(9,gate='bell',init='rand',architecture='brick')
+arr = circ.mut_info_array_gen(50,0)
 
 
 
