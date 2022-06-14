@@ -75,6 +75,11 @@ H = ham_heis_2D(4, 5, cyclic=False)
 H = H + 0.2 * ikron(spin_operator('Z', sparse=True), dims, [(1, 2)])
 
 #%%
+%time ge, gs = eigh(H, k=1)
+
+
+#%%
+
 Sz = spin_operator('Z', stype='coo')
 Sz_ij = [[ikron(Sz, dims, [(i, j)])
           for j in range(m)]
@@ -85,9 +90,21 @@ m_ij = [[expec(Sz_ij[i][j], gs)
          for j in range(m)]
         for i in range(n)]
 
-%matplotlib inline
 import matplotlib.pyplot as plt
 
 plt.imshow(m_ij)
 plt.colorbar()
+#%%
+target = (1, 2)
 
+rho_ab_ij = [[partial_trace(gs, dims=dims, keep=[target, (i, j)])
+              for j in range(m)]
+             for i in range(n)]
+mi_ij = [[mutinf(rho_ab_ij[i][j] if (i, j) != target else
+                 purify(rho_ab_ij[i][j]))
+          for j in range(m)]
+         for i in range(n)]
+
+plt.imshow(mi_ij)
+plt.colorbar()
+#%%
