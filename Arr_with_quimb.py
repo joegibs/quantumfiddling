@@ -15,10 +15,14 @@ import numpy as np
 from quimb import *
 import matplotlib.pyplot as plt
 #%%
-match = np.array([[0.5,0,0,0.5],
-                  [0,0.5,0.5,0],
-                  [0,0.5,0.5,0],
-                  [0.5,0,0,0.5]])
+def match(theta,phi):
+    return[[np.cos(theta),0,0,-np.sin(theta)],
+           [0,np.cos(phi),-np.sin(phi),0],
+           [0, np.sin(phi),np.cos(phi),0],
+           [ np.sin(theta),0,0,np.cos(theta)]]
+def rand_match():
+    arr=2*np.pi*np.random.rand(2)
+    return match(arr[0],arr[1])
 
 class circuit():
     '''
@@ -130,8 +134,8 @@ class circuit():
         return arr
             
 #%%
-circ=circuit(9,gate='bell',init='rand',architecture='brick')
-arr = circ.mut_info_array_gen(50,0)
+circ=circuit(6,gate='match',init='rand',architecture='brick')
+arr = circ.mut_info_array_gen(5,0)
 
 
 
