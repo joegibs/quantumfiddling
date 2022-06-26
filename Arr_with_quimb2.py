@@ -148,8 +148,8 @@ class circuit:
 
 
 #%%
-circ = circuit(7, gate="bell", init="rand", architecture="brick")
-arr = circ.mut_info_array_gen(55, 0)
+circ = circuit(9, gate="match", init="rand", architecture="brick")
+arr = circ.mut_info_array_gen(15, 0)
 
 
 #%%
