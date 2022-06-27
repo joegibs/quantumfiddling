@@ -138,17 +138,27 @@ class circuit:
             for x in range(np.size(arr))
         ]
         return mi
-
-    def mut_info_array_gen(self, num_steps, target=0):
-        arr = [circ.mutinfo(target)]
-        for i in range(num_steps):
-            circ.gen_step(1 - i % 2)
-            arr.append(circ.mutinfo(target))
+    def mutinfo_subsys(self,sysa):
+        sysb= sorted(set(range(self.num_elems))-set(sysa))
+        return mutinf_subsys(self.dop,dims=self.dims,sysa=sysa,sysb=sysb)
+        
+    def mut_info_array_gen(self, num_steps, target=0, subsys=0):
+        #this is yikes rn
+        if subsys!=0:
+            arr = [self.mutinfo_subsys(subsys)]
+            for i in range(num_steps):
+                self.gen_step(1 - i % 2)
+                arr.append(self.mutinfo_subsys(subsys))
+        else:
+            arr = [self.mutinfo(target)]
+            for i in range(num_steps):
+                self.gen_step(1 - i % 2)
+                arr.append(self.mutinfo(target))
         return arr
 
 
 #%%
-circ = circuit(7, gate="bell", init="rand", architecture="brick")
+circ = circuit(8, gate="bell", init="rand", architecture="brick")
 arr = circ.mut_info_array_gen(55, 0)
 
 
@@ -158,6 +168,13 @@ plt.title("Log Mutual Information with site 0")
 plt.ylabel("step number")
 plt.xlabel("site number")
 plt.colorbar()
+#%%
+circ = circuit(8, gate="bell", init="rand", architecture="brick")
+arr = circ.mut_info_array_gen(55, 0,subsys=list(range(4)))
+plt.plot(arr)
+plt.title("subsystem mutual info")
+plt.ylabel("mutual info")
+plt.xlabel("step number")
 #%%
 dop = computational_state("".join(["0" for x in range(2)]), sparse=False)
 had = ikron(hadamard(), [2] * 2, 0)
