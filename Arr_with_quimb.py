@@ -48,7 +48,8 @@ class circuit:
         gate: type of gate used
             -"bell" hadamard then cnot to make a bell state
             -"haar" haar random unitary operators
-        init: initialization of qqubits
+            -"match" random match gates
+        init: initialization of qubits
         
         architecture: arrangement of gates
             -"brick": alternating pairs
@@ -137,40 +138,56 @@ class circuit:
             mutinf(arr[x] if x != target else purify(arr[x]))
             for x in range(np.size(arr))
         ]
-        return mi
-    def mutinfo_subsys(self,sysa):
-        sysb= sorted(set(range(self.num_elems))-set(sysa))
-        return mutinf_subsys(self.dop,dims=self.dims,sysa=sysa,sysb=sysb)
-        
+        en = [
+            entropy(arr[x] if x != target else np.identity(2))
+            for x in range(np.size(arr))
+        ]
+        return mi, en
+
+    def mutinfo_subsys(self, sysa):
+        sysb = sorted(set(range(self.num_elems)) - set(sysa))
+        return mutinf_subsys(self.dop, dims=self.dims, sysa=sysa, sysb=sysb)
+
     def mut_info_array_gen(self, num_steps, target=0, subsys=0):
-        #this is yikes rn
-        if subsys!=0:
+        # this is yikes rn
+        if subsys != 0:
             arr = [self.mutinfo_subsys(subsys)]
             for i in range(num_steps):
                 self.gen_step(1 - i % 2)
                 arr.append(self.mutinfo_subsys(subsys))
         else:
-            arr = [self.mutinfo(target)]
+            mi, en = self.mutinfo(target)
+            mi_arr = [mi]
+            en_arr = [en]
             for i in range(num_steps):
+
                 self.gen_step(1 - i % 2)
-                arr.append(self.mutinfo(target))
-        return arr
+                mi, en = self.mutinfo(target)
+                mi_arr.append(mi)
+                en_arr.append(en)
+        return mi_arr, en_arr
 
 
 #%%
 circ = circuit(8, gate="bell", init="rand", architecture="brick")
-arr = circ.mut_info_array_gen(55, 0)
+arr, en = circ.mut_info_array_gen(20, 0)
 
 
-#%%
+#%% should just move plots inside class
 plt.imshow(np.log(np.array(arr).round(3)))
 plt.title("Log Mutual Information with site 0")
 plt.ylabel("step number")
 plt.xlabel("site number")
 plt.colorbar()
 #%%
+plt.imshow(en)
+plt.title("Entropy Information with site 0")
+plt.ylabel("step number")
+plt.xlabel("site number")
+plt.colorbar()
+#%%
 circ = circuit(8, gate="bell", init="rand", architecture="brick")
-arr = circ.mut_info_array_gen(55, 0,subsys=list(range(4)))
+arr = circ.mut_info_array_gen(55, 0, subsys=list(range(4)))
 plt.plot(arr)
 plt.title("subsystem mutual info")
 plt.ylabel("mutual info")
