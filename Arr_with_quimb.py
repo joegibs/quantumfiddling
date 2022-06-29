@@ -146,15 +146,22 @@ class circuit:
 
     def mutinfo_subsys(self, sysa):
         sysb = sorted(set(range(self.num_elems)) - set(sysa))
-        return mutinf_subsys(self.dop, dims=self.dims, sysa=sysa, sysb=sysb)
+        mi = mutinf_subsys(self.dop, dims=self.dims, sysa=sysa, sysb=sysb)
+        en = entropy_subsys(self.dop, dims=self.dims, sysa=sysa, sysb=sysb)
+        return mi, en
 
     def mut_info_array_gen(self, num_steps, target=0, subsys=0):
         # this is yikes rn
         if subsys != 0:
+            mi, en = self.mutinfo_subsys(subsys)
+            mi_arr = [mi]
+            en_arr = [en]
             arr = [self.mutinfo_subsys(subsys)]
             for i in range(num_steps):
                 self.gen_step(1 - i % 2)
-                arr.append(self.mutinfo_subsys(subsys))
+                mi, en = self.mutinfo_subsys(subsys)
+                mi_arr.append(mi)
+                en_arr.append(en)
         else:
             mi, en = self.mutinfo(target)
             mi_arr = [mi]
@@ -169,7 +176,7 @@ class circuit:
 
 
 #%%
-circ = circuit(8, gate="bell", init="rand", architecture="brick")
+circ = circuit(8, gate="match", init="rand", architecture="brick")
 arr, en = circ.mut_info_array_gen(20, 0)
 
 
@@ -186,10 +193,17 @@ plt.ylabel("step number")
 plt.xlabel("site number")
 plt.colorbar()
 #%%
-circ = circuit(8, gate="bell", init="rand", architecture="brick")
-arr = circ.mut_info_array_gen(55, 0, subsys=list(range(4)))
-plt.plot(arr)
-plt.title("subsystem mutual info")
+circ = circuit(8, gate="match", init="rand", architecture="brick")
+mi, en = circ.mut_info_array_gen(55, 0, subsys=list(range(4)))
+circ = circuit(8, gate="match", init="rand", architecture="staircase")
+mi2, en2 = circ.mut_info_array_gen(55, 0, subsys=list(range(4)))
+#%%
+# circ = circuit(8, gate="match", init="rand", architecture="brick")
+# mi, en = circ.mut_info_array_gen(55, 0, subsys=list(range(4)))
+plt.plot(mi)
+plt.plot(mi2)
+plt.legend(["brick","staircase"])
+plt.title("first half second half entropy")
 plt.ylabel("mutual info")
 plt.xlabel("step number")
 #%%

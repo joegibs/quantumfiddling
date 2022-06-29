@@ -8,6 +8,7 @@ Created on Tue Jun 14 13:01:27 2022
 import quimb as qu
 import quimb.tensor as qtn
 import matplotlib.pyplot as plt
+import numpy as np
 
 #%%
 b = qu.bell_state("psi-")
@@ -56,3 +57,45 @@ circ.apply_gate("CNOT", 0, 1)
 
 # init two quibit
 circ = qtn.Circuit(N=2, psi0=MPS_computational_state("01"))
+
+#%% section 2.3
+L = 5
+
+# create the nodes, by default just the scalar 1.0
+tensors = [qtn.Tensor() for _ in range(L)]
+
+for i in range(L):
+    # add the physical indices, each of size 2
+    tensors[i].new_ind(f'k{i}', size=2)
+
+
+tensors[0].new_bond(tensors[1], size=7)
+tensors[0].new_bond(tensors[2], size=7)
+tensors[1].new_bond(tensors[2], size=7)
+tensors[1].new_bond(tensors[3], size=7)
+tensors[2].new_bond(tensors[3], size=7)
+tensors[3].new_bond(tensors[4], size=7)
+
+mps = qtn.TensorNetwork(tensors)
+mps.draw()
+#%%
+print(qu.bell_state(3))
+#%% 4 split with svd to get to a mps
+# create a tensor with 5 legs
+t = qtn.rand_tensor([2, 3, 4, 5, 6], inds=['a', 'b', 'c', 'd', 'e'])
+t.draw(initial_layout='kamada_kawai', figsize=(3, 3))
+# split the tensor, by grouping some indices as 'left'
+tn = t.split(['a', 'c', 'd'])
+tn.draw(figsize=(3, 3))
+
+
+#%%
+a=qu.qu([1],qtype='dop')
+b=qu.qu([0],qtype='dop')
+print(a@b)
+a=qu.qu([[1,0],[0,0]],qtype='dop')
+b=qu.qu([[0,0],[0,0]],qtype='dop')
+print(a@b)
+a=qu.qu([[1,0],[0,1]],qtype='dop')
+b=qu.qu([[0,1],[0,0]],qtype='dop')
+print(a.H@b)
