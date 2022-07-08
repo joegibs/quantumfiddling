@@ -176,8 +176,8 @@ class circuit:
 
 
 #%%
-circ = circuit(8, gate="match", init="rand", architecture="brick")
-arr, en = circ.mut_info_array_gen(20, 0)
+circ = circuit(11, gate="bell", init="rand", architecture="brick")
+arr, en = circ.mut_info_array_gen(55, 0)
 
 
 #%% should just move plots inside class
