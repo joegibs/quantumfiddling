@@ -16,7 +16,7 @@ import itertools
 # init all the tensors
 n = 4
 lis = ["X", "Y", "Z", "I"]
-combos = itertools.combinations_with_replacement(lis, n)
+combos = itertools.product(lis, repeat=n)
 tensors = [qtn.Tensor(tags=["".join(x for x in i)]) for i in combos]
 
 # make connections
@@ -48,3 +48,5 @@ mps.draw(
     edge_alpha=1.0,
     edge_scale=0.5,
 )
+#%%
+#find cliques
