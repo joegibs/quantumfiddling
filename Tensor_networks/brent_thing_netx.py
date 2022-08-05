@@ -19,7 +19,7 @@ pauli = {
 }
 #%%
 # init all the tensors
-n = 4
+n = 2
 lis = ["X", "Y", "Z", "I"]
 combos = itertools.product(lis, repeat=n)
 names = ["".join(x for x in i) for i in combos]
@@ -48,12 +48,12 @@ def gen_graph(n=2):
         A = i[0]
         B = i[1]
         if anticommute_check(A, B):
-            G.add_edge(i[0], i[1], **{"color": "tab:blue", "width": 0.05})
+            G.add_edge(i[0], i[1], **{"color": "tab:blue", "width": 0.2})
     return G
 
 
 #%%
-n = 4
+n = 
 G = gen_graph(n)
 G.remove_node("".join("I" for i in range(n)))
 print(nx.algorithms.approximation.large_clique_size(G))
@@ -68,18 +68,30 @@ nx.draw_networkx_edges(G, pos, width=0.2)
 plt.show()
 
 #%% cliques
+cliques=[]
+num_cliq = 0
+check=0
+max_xs=nx.algorithms.approximation.large_clique_size(G)
 for i in nx.find_cliques(G):
-    if len(i) == 9:
-        print(i)
+    if len(i) == max_xs:
+        cliques.append(set(i))
+
+for i in nx.find_cliques(G):
+    if not any([set(i).issubset(b) for b in cliques]):
+        if len(i) == 5:
+            num_cliq = num_cliq +1
+
+print(projansky_is_a_slave_driver,check)
+
 #%%
 clique = next(nx.find_cliques(G))
 
 for i in itertools.combinations(clique, 2):
     G[i[0]][i[1]]["color"] = "tab:red"
-    G[i[0]][i[1]]["width"] = 7
+    G[i[0]][i[1]]["width"] = 2.5
 
-pos = nx.circular_layout(G)
-fig, ax = plt.subplots(figsize=(32, 32))
+pos = nx.spiral_layout(G)
+fig, ax = plt.subplots(figsize=(16, 16))
 node_opts = {"node_size": 500, "node_color": "w", "edgecolors": "k", "linewidths": 2.0}
 nx.draw_networkx_nodes(G, pos, **node_opts)
 nx.draw_networkx_labels(G, pos, font_size=10)
