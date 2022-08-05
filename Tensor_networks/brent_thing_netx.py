@@ -53,7 +53,7 @@ def gen_graph(n=2):
 
 
 #%%
-n = 
+n = 4
 G = gen_graph(n)
 G.remove_node("".join("I" for i in range(n)))
 print(nx.algorithms.approximation.large_clique_size(G))
@@ -67,22 +67,32 @@ nx.draw_networkx_labels(G, pos, font_size=10)
 nx.draw_networkx_edges(G, pos, width=0.2)
 plt.show()
 
-#%% cliques
+#%% cliques need to fix
 cliques=[]
 num_cliq = 0
 check=0
+
 max_xs=nx.algorithms.approximation.large_clique_size(G)
 for i in nx.find_cliques(G):
-    if len(i) == max_xs:
+    if len(i) == 3:#max_xs:
         cliques.append(set(i))
 
 for i in nx.find_cliques(G):
     if not any([set(i).issubset(b) for b in cliques]):
-        if len(i) == 5:
+        if len(i) == 3:
             num_cliq = num_cliq +1
 
-print(projansky_is_a_slave_driver,check)
-
+print(num_cliq,len(cliques))
+#%% count max identity
+max_xs=nx.algorithms.approximation.large_clique_size(G)
+for b in nx.find_cliques(G):
+    if len(b) == 3:
+        count = 0;
+        for i in b:
+            if ({'I'}.issubset(set(i)) and len(set(i))==2):
+                count+=1
+        if count == 3:
+            print(b)
 #%%
 clique = next(nx.find_cliques(G))
 
