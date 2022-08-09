@@ -55,7 +55,7 @@ def gen_graph(n=2):
 
 
 #%%
-n = 2
+n = 4
 G = gen_graph(n)
 G.remove_node("".join("I" for i in range(n)))
 print(nx.algorithms.approximation.large_clique_size(G))
@@ -76,19 +76,18 @@ check=0
 
 max_xs=nx.algorithms.approximation.large_clique_size(G)
 for i in nx.find_cliques(G):
-    if len(i) == 5:#max_xs:
+    if len(i) == 9:#max_xs:
         cliques.append(set(i))
 
-for i in nx.find_cliques(G):
-    if not any([set(i).issubset(b) for b in cliques]):
-        if len(i) == 7:
-            num_cliq = num_cliq +1
+# for i in nx.find_cliques(G):
+#     if not any([set(i).issubset(b) for b in cliques]):
+#         if len(i) == 3:
+#             num_cliq = num_cliq +1
 
 print(len(cliques))
 #%%
 def gen_paulis(lis):
     """
-
     Parameters
     ----------
     lis : list
@@ -141,8 +140,8 @@ for i in cliques:
         se=set(j)
         se.add(find_pauli(multiply_lis(gen_paulis(chk))))
         
-        if not any([se.issubset(b) for b in basis_sets]):
-            basis_sets.append(se)
+        # if not any([se.issubset(b) for b in basis_sets]):
+        basis_sets.append(se)
 #multiply the rest
         #gen_paulis
         #multiply
