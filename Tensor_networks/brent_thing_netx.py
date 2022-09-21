@@ -62,7 +62,7 @@ print(nx.algorithms.approximation.large_clique_size(G))
 
 #%%
 pos = nx.circular_layout(G)
-fig, ax = plt.subplots(figsize=(16, 16))
+fig, ax = plt.subplots(figsize=(32, 32))
 node_opts = {"node_size": 500, "node_color": "w", "edgecolors": "k", "linewidths": 2.0}
 nx.draw_networkx_nodes(G, pos, **node_opts)
 nx.draw_networkx_labels(G, pos, font_size=10)

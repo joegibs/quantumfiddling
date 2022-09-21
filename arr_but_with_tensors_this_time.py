@@ -151,7 +151,7 @@ class circuit_wrap:
 #%%
 circ = circuit_wrap(6, gate="match", architecture="brick")
 circ.circ_gen(6, 3)
-# circ.draw()
+circ.draw()
 
 #%%
 plt.imshow(circ.mutinf_arr)
