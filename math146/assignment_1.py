@@ -34,7 +34,7 @@ def T_cat_map(xx,yy,**kwargs):
     for i in range(np.shape(xx)[0]):
         for j in range(np.shape(xx)[1]):
             v = np.array([[xx[i][j]],[yy[i][j]]])
-            t = np.matmul(kwargs['A'],v)%1
+            t = np.mod(np.matmul(kwargs['A'],v),1)
             xn[i][j]=t[0][0]
             yn[i][j]=t[1][0]
     return xn,yn
@@ -49,7 +49,7 @@ def f_bump(xx,yy):
 #%%
 n=100
 xx,yy=init_space(n)
-xn,yn,zn=composition(xx,yy,T_rotation,f_bump,**{'a1':0.5,'a2':0.5})
+xn,yn,zn=composition(xx,yy,T_rotation,f_bump,**{'a1':np.sqrt(3),'a2':np.sqrt(7)})
                                               
 h = plt.contourf(xx,yy, zn)
 plt.axis('scaled')
