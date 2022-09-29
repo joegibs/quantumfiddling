@@ -10,6 +10,9 @@ import quimb.tensor as qtn
 import matplotlib.pyplot as plt
 import numpy as np
 
+import itertools
+
+from opt_einsum import contract
 #%%
 b = qu.bell_state("psi-")
 k = qu.bell_state("psi+")
@@ -115,24 +118,31 @@ c = np.array([[e for i in range(3)] for e in range(3)])
 d = np.array([[[b * g * e for b in range(3)] for g in range(3)] for e in range(3)])
 
 tensors = [
-    qtn.Tensor(data=a, inds=["b", "a"], tags=["A"]),
-    qtn.Tensor(data=b, inds=["a", "g", "d"], tags=["B"]),
-    qtn.Tensor(data=c, inds=["d", "e"], tags=["C"]),
-    qtn.Tensor(data=d, inds=["e", "b", "g"], tags=["D"]),
+    qtn.Tensor(data=a, inds=["a", "b"], tags=["A"]),
+    qtn.Tensor(data=b, inds=["d", "g", "a"], tags=["B"]),
+    qtn.Tensor(data=c, inds=["e", "d"], tags=["C"]),
+    qtn.Tensor(data=d, inds=["b", "g", "e"], tags=["D"]),
 ]
+
 mps = qtn.TensorNetwork(tensors)
 mps.draw()
+
 print(mps ^ ...)
+# print(a1@b1@c1@d1)
 """
-need to check indicies simpler examples work as expected idk
+Indicies are troublesome be very careful
 """
+#%%
+print(contract("ab,gda,ed,bge", a,b,c,d))
+print(contract("ab,dga,ed,bge", a,b,c,d))
+
 #%%
 s = 0
 for a in range(3):
     for b in range(3):
-        for g in range(3):
-            for d in range(3):
-                for e in range(3):
+        for d in range(3):
+            for e in range(3):
+                for g in range(3):
                     s = s + (b ** 2 - 2 * a) * ((-((3) ** a)) * g + d) * g * b * e ** 2
 print(s)
 #%% simpler example to indicie check
@@ -200,7 +210,122 @@ print(mp)
 """
 data doesn't really matter just filling so that i have appropriatly sized arrays'
 """
+#%%
+"""
+3 colorings
+not sure what the data looks like exactly 
+The value of e is 1 if and only if all indices are identical, and zero otherwise,
+whilst n has value 1 if and only if all legs differ and 0 otherwise
+"""
+L = 13
 
+# create the nodes, by default just the scalar 1.0
+tensors = [qtn.Tensor(tags='e') if i<6 else qtn.Tensor(tags='n') for i in range(L)]
+
+tensors[0].new_bond(tensors[6], size=3)
+tensors[6].new_bond(tensors[1], size=3)
+
+tensors[0].new_bond(tensors[7], size=3)
+tensors[7].new_bond(tensors[2], size=3)
+
+tensors[1].new_bond(tensors[8], size=3)
+tensors[8].new_bond(tensors[3], size=3)
+
+tensors[2].new_bond(tensors[9], size=3)
+tensors[9].new_bond(tensors[4], size=3)
+
+tensors[3].new_bond(tensors[10], size=3)
+tensors[10].new_bond(tensors[4], size=3)
+
+tensors[3].new_bond(tensors[11], size=3)
+tensors[11].new_bond(tensors[5], size=3)
+
+tensors[4].new_bond(tensors[12], size=3)
+tensors[12].new_bond(tensors[5], size=3)
+
+
+def flat_num(arr):
+    return 9*arr[0]+arr[1]+3*(arr[2]-1)
+
+for i in range(6):
+    dat=np.ones_like(tensors[i].data)
+    arr = [0 if x not in (0,13,26) else 1 for x in range(np.product(np.shape(tensors[i].data))) ]
+    tensors[i].modify(data = np.reshape(arr,np.shape(tensors[i].data)))
+    # sizes = [tensors[i].ind_size(x) for x in tensors[i].inds]
+    
+#     tensors[i].modify(data=dat)
+for i in range(6,13):
+    dat=np.ones_like(tensors[i].data)-(np.ones_like(tensors[i].data)-np.identity(3))
+
+    arr = [0 if x in (0,13,26) else 1 for x in range(np.product(np.shape(tensors[i].data))) ]
+    tensors[i].modify(data = dat)#np.reshape(arr,np.shape(tensors[i].data)))
+
+
+mps = qtn.TensorNetwork(tensors)
+# mps.draw(color=['e','n'])
+print(mps^...)
+#%%
+"""
+different coloring alg from https://arxiv.org/pdf/1708.00006.pdf
+"""
+L = 2
+
+def levi_cevita_tensor(dim):   
+    arr=np.zeros(tuple([dim for _ in range(dim)]))
+    for x in itertools.permutations(tuple(range(dim))):
+        mat = np.zeros((dim, dim), dtype=np.int32)
+        for i, j in zip(range(dim), x):
+            mat[i, j] = 1
+        arr[x]=int(np.linalg.det(mat))
+    return arr
+#%%
+# create the nodes, by default just the scalar 1.0
+
+tensors = [qtn.Tensor(tags='e') for i in range(L)]
+
+tensors[0].new_bond(tensors[1], size=6)
+tensors[0].new_bond(tensors[1], size=6)
+tensors[0].new_bond(tensors[1], size=6)
+tensors[0].new_bond(tensors[1], size=6)
+tensors[0].new_bond(tensors[1], size=6)
+tensors[0].new_bond(tensors[1], size=6)
+
+for i in range(2):
+    
+    tensors[i].modify(data = levi_cevita_tensor(6))
+
+mps = qtn.TensorNetwork(tensors)
+# mps.draw(color=['e','n'])
+print(mps^...)
+#%%
+a=np.nditer(tensors[3].data)
+np.res
+for elem in a:
+    print(a.iterindex,elem)
+#%%
+'''levi_cevita'''
+def levi_cevita_tensor(dim):
+    
+    arr=np.zeros(tuple([dim for _ in range(dim)]))
+    for x in itertools.permutations(tuple(range(dim))):
+        mat = np.zeros((dim, dim), dtype=np.int32)
+        for i, j in zip(range(n), x):
+            mat[i, j] = 1
+        arr[x]=int(np.linalg.det(mat))
+    return arr
+    
+#%%
+        
+perm=[0,1,3,2]
+n = len(perm)
+if n != len(set(perm)):  # infer there are repeated elements
+    print(0)
+else:
+    mat = np.zeros((n, n), dtype=np.int32)
+    for i, j in zip(range(n), perm):
+        print(i,j)
+        mat[i, j] = 1
+    print(int(np.linalg.det(mat)))
 #%%
 """
 qi examples
