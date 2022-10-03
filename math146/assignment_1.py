@@ -104,5 +104,6 @@ def animate(i,lis,data):
     return cont
 
 mydata=data_z(xx,yy)
+cont = plt.contourf(mydata.xx, mydata.yy, mydata.zn)
 mylis=[1,2,3]
 anim = animation.FuncAnimation(fig, animate, fargs=(mylis,mydata), frames=Nt,interval = 100)

@@ -121,7 +121,7 @@ tensors = [
     qtn.Tensor(data=a, inds=["a", "b"], tags=["A"]),
     qtn.Tensor(data=b, inds=["d", "g", "a"], tags=["B"]),
     qtn.Tensor(data=c, inds=["e", "d"], tags=["C"]),
-    qtn.Tensor(data=d, inds=["b", "g", "e"], tags=["D"]),
+    qtn.Tensor(data=d, inds=["e", "g", "b"], tags=["D"]),
 ]
 
 mps = qtn.TensorNetwork(tensors)
@@ -353,6 +353,7 @@ b = qu.qu([[0, 0], [0, 0]], qtype="dop")
 print(a @ b)
 
 print(a.H @ b)
+
 #%%
 a = np.array([[1, 0], [0, 0]])
 b = np.array([[0, 0], [0, 1]])
@@ -382,3 +383,8 @@ mps.draw()
 #%%
 p = qtn.MPS_rand_state(L=20, bond_dim=1)
 print(f"Site tags: '{p.site_tag_id}', site inds: '{p.site_ind_id}'")
+#%%
+"""
+MPS
+"""
+#%%
