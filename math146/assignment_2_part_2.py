@@ -15,17 +15,6 @@ import matplotlib.animation as animation
 from opt_einsum import contract
 
 #%%
-def phi_i(l, theta):
-    return np.exp(1j * l * theta)
-    # return np.cos(l*theta)+1j*np.sin(l*theta)
-
-
-def U_ij(i, j, T, X=[0, 2 * np.pi], **kwargs):
-    # print(i,j)
-    f = lambda x: (np.conjugate(phi_i(i, x)) * phi_i(j, T(x, **kwargs)))
-    a = f(np.linspace(X[0], X[1], 300))
-    return np.trapz(a, np.linspace(X[0], X[1], 300))
-
 
 def lplus1_space(i):
     return int(i - L)
@@ -37,26 +26,6 @@ def calculate_g(U, f, n=1):
     for i in range(1, n):
         g = U @ g
     return g
-def gen_u_and_f(alpha,kappa,L,T):
-    U = np.zeros((2 * L + 1, 2 * L + 1),dtype='complex')
-
-    """
-    calculate U_ij,
-    """
-    for ij in np.ndindex(np.shape(U)):
-        # print(lplus1_space(ij[0]),lplus1_space(ij[1]))
-        ans = U_ij(lplus1_space(ij[0]), lplus1_space(ij[1]), T, **{"alpha": alpha})
-        U[ij] = (ans) / (np.pi * 2)
-    """
-    Calculate fl
-    """
-    f = np.zeros((2 * L + 1, 1))
-    for ij in np.ndindex(np.shape(f)):
-        # print(abs(lplus1_space(ij[0])))
-        ans = bessel(abs(lplus1_space(ij[0])), kappa) / bessel(0, kappa)
-        f[ij] = ans
-        
-    return U,f
 #%%
 def init_space(n):
     x=np.linspace(0,np.pi*2,n,endpoint=False)
@@ -72,9 +41,8 @@ def composition(theta,T,f,**kwargs):
     
     return thetan,zn
 
-
 def T_rotation(theta,**kwargs):
-    thetan=np.array([np.mod(theta[0]+kwargs['a1'],np.pi*2),np.mod(theta[1]+kwargs['a2'],np.pi*2)],dtype='object')
+    thetan=np.mod(np.array([theta[0]+kwargs['a1'],theta[1]+kwargs['a2']],dtype='object'),2*np.pi)
     return thetan
 
 def T_skew_rotation(theta,**kwargs):
@@ -110,53 +78,58 @@ def f_blank(theta):
 
 #%%
 def phi_i(l, theta):
-    return np.exp(1j * (l[0] * np.array(theta[0],dtype='float')+l[1] * np.array(theta[1],dtype='float')))
+    theta1=np.array(theta[0],dtype='float')
+    theta2=np.array(theta[1],dtype='float')
+    return np.exp(1j * (l[0] * theta1+l[1] * theta2))
 
-def U_ij(i, j, T, X=[0, 2 * np.pi], **kwargs):
-    f = lambda x: (np.conjugate(phi_i([k,i], x)) * phi_i([k,j], T(x, **kwargs)))
+def U_ij(index, T, X=[0, 2 * np.pi], **kwargs):
+    f = lambda x: np.conjugate(phi_i([index[0],index[1]], theta)) * phi_i([index[2],index[3]], T(theta, **kwargs))
     n=100
     x=np.linspace(X[0], X[1],n,endpoint=False)
     y=np.linspace(X[0], X[1],n,endpoint=False)
-    theta = np.meshgrid(x,y)
+    theta=np.meshgrid(x,y)
     a = f(theta)
-    return np.trapz(np.trapz(a,x,axis=0),y)
+    return np.trapz(np.trapz(a,x,axis=1),y)
 
 
 #%%
 def gen_u_and_f(L,T,**kwargs):
-    U = np.zeros((2,2 * L + 1,2 * L + 1),dtype='complex')
+    U = np.zeros((2 * L + 1,2 * L + 1,2 * L + 1,2 * L + 1),dtype='complex')
+    for ij in np.ndindex(np.shape(U)):
+        # print(ij)
+        ans = U_ij(iter_2l(ij), T, **kwargs)
+        U[ij] = (ans) / ((np.pi * 2)**2)
 
-    """
-    calculate U_ij,
-    """
-    for i in range(len(U)):
-        for ij in np.ndindex(np.shape(U[i])):
-            # print(i,lplus1_space(ij[0]),lplus1_space(ij[1]))
-            ans = U_ij(k,lplus1_space(ij[0]), lplus1_space(ij[1]), T, **kwargs)
-            # print(ans)
-            U[i,ij[0],ij[1]] = (ans) / ((np.pi * 2)**2)
-    """
-    Calculate fl
-    """
-    f = np.zeros((2,2 * L + 1, 1))
+    f = np.zeros((2 * L + 1,2 * L + 1))
     for ij in np.ndindex(np.shape(f)):
-        ans = bessel(abs(lplus1_space(ij[1])), kwargs['kappa']) / bessel(0, kwargs['kappa'])
-        f[ij] = ans
+        ans1 = bessel(abs(lplus1_space(ij[0])), kwargs['kappa']) / bessel(0, kwargs['kappa'])
+        ans2 =  bessel(abs(lplus1_space(ij[1])), kwargs['kappa']) / bessel(0, kwargs['kappa'])
+        f[ij] = ans1*ans2
+    
         
     return U,f
 
 def basis_expansion(g, basis_func, theta):
     expan = np.zeros_like(theta[0], dtype="complex")
     for ij in np.ndindex(np.shape(g)):
-        expan += g[ij] * basis_func([ij[0],lplus1_space(ij[1])], theta)
+        expan += g[ij] * basis_func([lplus1_space(ij[0]),lplus1_space(ij[1])], theta)
     return expan
 
 #%%
+n=100
+a1 = np.pi*0
+a2 = np.pi*0
+L  = 1
+kappa=1
+T = T_rotation
+theta=init_space(n)
+
+kwargs = {'a1':a1,'a2':a2,'A':np.array([[2,1],[1,1]]),'kappa':kappa}
+
 U,f = gen_u_and_f(L,T_rotation,**kwargs)
-g=contract("ijk,ijk->ik",f,U)
+g=contract("ijkm,im",U,f)
 zn=basis_expansion(g,phi_i,theta).real
 
-# axs[1].contourf(theta[0],theta[1], zn)
 h = plt.contourf(theta[0],theta[1], zn)
 plt.axis('scaled')
 plt.colorbar()
@@ -165,13 +138,11 @@ plt.show()
 fig, axs = plt.subplots(1,2)
 
 n=100
-theta=init_space(n)
-a1 = 0
-a2 = np.pi
-L  = 6
-kappa=1
-T = T_rotation
-n=100
+a1 =np.pi
+a2 = 0*np.pi/2
+L  = 3
+kappa=5
+T = T_skew_rotation
 theta=init_space(n)
 
 kwargs = {'a1':a1,'a2':a2,'A':np.array([[2,1],[1,1]]),'kappa':kappa}
@@ -184,9 +155,7 @@ axs[0].set_title('Continuous')
 # plt.colorbar()
 
 U,f = gen_u_and_f(L,T,**kwargs)
-g=contract("ijk,ijk->ik",f,U)
-print(g)
-
+g=contract("ijkm,jk->im",U,f)
 zn2=basis_expansion(g,phi_i,theta).real
 
 axs[1].contourf(theta[0],theta[1], zn2)
@@ -203,16 +172,15 @@ animate for a couple different values
 plt.close("all")  # Clear anything left over from prior runs.
 
 n=100
-theta=init_space(n)
 a1 = 1/10
 a2 = 1/10
-L  = 4
+L  = 3
 kappa=1
 T = T_rotation
-
+theta=init_space(n)
 
 kwargs = {'a1':a1,'a2':a2,'A':np.array([[2,1],[1,1]]),'kappa':kappa}
-Nt = 180
+Nt = 100
 
 class data_z:
     def __init__(self, angle,Ud,fd, T,**kwargs):
@@ -221,13 +189,14 @@ class data_z:
         self.T=T
         self.Ud = Ud
         self.fd = fd
-        self.g = contract("ijk,ijk->ik",self.fd,self.Ud)
+        self.g =contract("ijkm,jk->im",self.Ud,self.fd)
+
         self.kwargs = kwargs
         self.znc = composition(self.angle,T,f_vonmis,**kwargs)
         self.znd = basis_expansion(self.g, phi_i, self.angle).real
 
     def step(self):
-        self.g=contract("ijk,ijk->ik",np.reshape(self.g,np.shape(self.fd)),self.Ud)
+        self.g=contract("ijkm,jk->im",self.Ud,np.reshape(self.g,np.shape(self.fd)))
         self.znd = basis_expansion(self.g, phi_i, self.angle).real
         _, self.znc = composition(self.anglen, self.T, f_vonmis, **self.kwargs)
         self.anglen = self.T(self.anglen, **self.kwargs)
@@ -244,12 +213,9 @@ def animate(ii, lis, data):
             c.remove()  # removes only the contours, leaves the rest intact
     cont[1].contourf(theta[0], theta[1], zn2)
     cont[0].contourf(theta[0], theta[1], zn1)
-    plt.title(f't = {ii}')
+    fig.suptitle(f't = {ii}')
 
     return cont
-
-Ud,fd = gen_u_and_f(L,T,**kwargs)
-mydata = data_z(theta,Ud,fd, T,**kwargs)
 
 fig, cont = plt.subplots(1,2, sharey=True)
 
@@ -258,80 +224,41 @@ _,zn=composition(theta,T,f_vonmis,**kwargs)
                                               
 cont[0].contourf(theta[0],theta[1], zn)
 
-g=contract("ijk,ijk->ik",f,U)
-zn=basis_expansion(g,phi_i,theta).real
+U,f = gen_u_and_f(L,T,**kwargs)
+g=contract("ijkm,jk->im",U,f)
+zn2=basis_expansion(g,phi_i,theta).real
 
-cont[1].contourf(theta[0], theta[1], zn)    # first image on screen
+cont[1].contourf(theta[0], theta[1], zn2)    # first image on screen
 cont[0].set_aspect("equal")
 cont[1].set_aspect("equal")
+
+mydata = data_z(theta,U,f, T,**kwargs)
 
 mylis = [1, 2, 3]
 anim = animation.FuncAnimation(
     fig, animate, fargs=(mylis, mydata), frames=Nt, interval=100
 )
 
-
-
-
-
-
-
-
-
-
-
-
-#%%
-
-
-
 #%%
 n=100
 theta=init_space(n)
-a1 = 0*np.pi/2
-a2 = 0
-L  = 1
-kappa=1
+a1 = np.pi
+a2 = np.pi
+L  = 2
+kappa=2
 T = T_rotation
+kwargs = {'a1':a1,'a2':a2,'A':np.array([[2,1],[1,1]]),'kappa':kappa}
 
-def phi_i(l, theta):
-    return np.exp(1j * (l[0] * np.array(theta[0],dtype='float')+l[1] * np.array(theta[1],dtype='float')))
-
-def U_ij(index, T, X=[0, 2 * np.pi], **kwargs):
-    f = lambda x: (np.conjugate(phi_i([index[0],index[1]], x)) * phi_i([index[2],index[3]], T(x, **kwargs)))
-    n=100
-    x=np.linspace(X[0], X[1],n,endpoint=False)
-    y=np.linspace(X[0], X[1],n,endpoint=False)
-    theta = np.meshgrid(x,y)
-    a = f(theta)
-    return np.trapz(np.trapz(a,x,axis=0),y)
-
-def basis_expansion(g, basis_func, theta):
-    expan = np.zeros_like(theta[0], dtype="complex")
-    for ij in np.ndindex(np.shape(g)):
-        expan += g[ij] * basis_func(iter_2l(ij), theta)
-    return expan
-
-U = np.zeros((2 * L + 1,2 * L + 1,2 * L + 1,2 * L + 1),dtype='complex')
-
-"""
-calculate U_ij,
-"""
-
-for ij in np.ndindex(np.shape(U)):
-    ans = U_ij(iter_2l(ij), T, **kwargs)
-    U[ij] = (ans) / ((np.pi * 2)**2)
-"""
-Calculate fl
-"""
-f = np.zeros((2 * L + 1,2 * L + 1))
-for ij in np.ndindex(np.shape(f)):
-    ans1 = bessel(abs(lplus1_space(ij[0])), kwargs['kappa']) / bessel(0, kwargs['kappa'])
-    ans2 =  bessel(abs(lplus1_space(ij[1])), kwargs['kappa']) / bessel(0, kwargs['kappa'])
-    f[ij] = ans1*ans2
-    
-g=contract("ijkm,kj->im",U,f)
+U,f = gen_u_and_f(L,T,**kwargs)
+g=contract("ijkm,jk->im",U,f)
 zn=basis_expansion(g,phi_i,theta).real
+# g=contract("ijkm,jk->im",U,np.reshape(g,np.shape(f)))
+# g=contract("ijkm,jk->im",U,np.reshape(g,np.shape(f)))
+# g=contract("ijkm,jk->im",U,np.reshape(g,np.shape(f)))
+# g=contract("ijkm,jk->im",U,np.reshape(g,np.shape(f)))
+# g=contract("ijkm,jk->im",U,np.reshape(g,np.shape(f)))
+
+# zn=basis_expansion(g,phi_i,theta).real
 
 # axs[1].contourf(theta[0],theta[1], zn)
 h = plt.contourf(theta[0],theta[1], zn)
