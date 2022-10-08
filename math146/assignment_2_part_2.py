@@ -140,7 +140,7 @@ fig, axs = plt.subplots(1,2)
 n=100
 a1 =np.pi
 a2 = 0*np.pi/2
-L  = 3
+L  = 2
 kappa=5
 T = T_skew_rotation
 theta=init_space(n)
@@ -174,13 +174,13 @@ plt.close("all")  # Clear anything left over from prior runs.
 n=100
 a1 = 1/10
 a2 = 1/10
-L  = 3
+L  = 2
 kappa=1
-T = T_rotation
+T = T_skew_rotation
 theta=init_space(n)
 
 kwargs = {'a1':a1,'a2':a2,'A':np.array([[2,1],[1,1]]),'kappa':kappa}
-Nt = 100
+Nt = 10
 
 class data_z:
     def __init__(self, angle,Ud,fd, T,**kwargs):

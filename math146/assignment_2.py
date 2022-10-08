@@ -62,7 +62,6 @@ def plot(T, f, angle=None, **kwargs):
 
     axs.set_aspect("equal")
     plt.show()
-    return yarg
 
 
 #%%

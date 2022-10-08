@@ -388,3 +388,32 @@ print(f"Site tags: '{p.site_tag_id}', site inds: '{p.site_ind_id}'")
 MPS
 """
 #%%
+L = 1
+
+# create the nodes, by default just the scalar 1.0
+tensors = [qtn.Tensor() for _ in range(L)]
+
+tensors[0].new_ind(f"1", size=1)
+tensors[0].new_ind(f"2", size=1)
+tensors[0].new_ind(f"3", size=1)
+a= np.array([[[1,0],[0.5,-0.5]],[[0,1],[0.5,-0.5]]])
+b = np.array([[1,0],[0,-1]])
+#contract("ijk,km->jm",a,b)
+tensors[0].modify(data=a)
+
+# tensors[1].modify(data=b)
+mps = qtn.TensorNetwork(tensors)
+mps.draw()
+#%%
+a0=np.array([[1,0],[0,1]])
+a1=
+#%%
+a=[[1,0],[0,1]]
+b=[[[1,0],[0,1]],[[0,1],[0,0]]]
+d=[[1,0],[0,1]]
+contract("ai,ibk,dk",a,b,d)
+#%%
+a=[[[1,0],[0,1]],[[1,0],[0,1]]]
+b=[[[1,0],[0,1]],[[0,1],[0,0]]]
+d=[[1,0],[0,-1]]
+contract("jai,ibk,jk",a,b,d)

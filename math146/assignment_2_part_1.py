@@ -208,8 +208,9 @@ plot
 alpha = 1.234
 kappa = 3
 L=4
+T=T_rotation
 
-U,f = gen_u_and_f(alpha,kappa,L)
+U,f = gen_u_and_f(alpha,kappa,L,T)
 g = calculate_g(U,f)
 theta = np.linspace(0, 2 * np.pi, 300)
 radius = 1
@@ -239,6 +240,8 @@ plt.close("all")  # Clear anything left over from prior runs.
 Nt = 180
 bound = 1
 alpha = np.pi / 50
+T=T_rotation
+
 # angle = np.linspace(0, 2 * np.pi, 150)
 
 class data_z:
@@ -274,7 +277,7 @@ def animate(ii, lis, data):
         segments = np.concatenate([points[:-1], points[1:]], axis=1)
     
         norm = plt.Normalize(colors.min(), colors.max())
-        lc = LineCollection(segments, cmap="terrain", norm=norm)
+        lc = LineCollection(segments, cmap="viridis", norm=norm)
         lc.set_array(colors)
         lc.set_linewidth(12)
         line = cont[i].add_collection(lc)
@@ -287,7 +290,7 @@ def animate(ii, lis, data):
 theta = np.linspace(0, 2 * np.pi, 300)
 alphav=[np.pi/20,np.pi/30,np.pi/100]
 kappav=[1,3,9]
-uf = [gen_u_and_f(alphav[i],kappav[i],8) for i in range(3)]
+uf = [gen_u_and_f(alphav[i],kappav[i],8,T) for i in range(3)]
 mydata = [data_z(theta,uf[i][0] , uf[i][1]) for i in range(3)]
 
 radius = 1
