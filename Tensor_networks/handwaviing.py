@@ -411,9 +411,74 @@ a1=
 a=[[1,0],[0,1]]
 b=[[[1,0],[0,1]],[[0,1],[0,0]]]
 d=[[1,0],[0,1]]
-contract("ai,ibk,dk",a,b,d)
+print(contract("ai,ibk,dk",a,b,d))
+#%%3.2 the solution is dumb
+L = 6
+
+# create the nodes, by default just the scalar 1.0
+tensors = [qtn.Tensor() for _ in range(L)]
+
+
+tensors[0].new_ind(f"k1", size=2)
+tensors[0].new_ind(f"k2", size=2)
+tensors[0].new_ind(f"k3", size=2)
+tensors[1].new_ind(f"k3", size=2)
+tensors[1].new_ind(f"k4", size=2)
+tensors[1].new_ind(f"k5", size=2)
+
+tensors[2].new_ind(f"k1", size=2)
+tensors[3].new_ind(f"k5", size=2)
+tensors[4].new_ind(f"k2", size=2)
+tensors[5].new_ind(f"k4", size=2)
+    
+a0=np.array([[1,0],[0,1]])
+a1=np.array([[0,1],[1,0]])
+# a=(a1@a0@a1@a1@a1).reshape(2,2,2)
+# a=a.reshape(4,4,4)
+b0=np.array([0,1])
+b1=np.array([1,0])
+a= np.array([[[1., 0.],
+         [0., 1.]],
+ 
+        [[0., 1.],
+         [1., 0.]]])
+tensors[0].modify(data=a)
+tensors[1].modify(data=a)
+tensors[2].modify(data=b0)
+tensors[3].modify(data=b0)
+tensors[4].modify(data=b1)
+tensors[5].modify(data=b0)
+tensors[0].modify(tags=['KET'])
+tensors[1].modify(tags=['KET'])
+tensors[2].modify(tags=['KET'])
+# tensors[3].modify(data=b0)
+mps = qtn.TensorNetwork(tensors)
+mps.draw()
+print((mps^...))
 #%%
 a=[[[1,0],[0,1]],[[1,0],[0,1]]]
 b=[[[1,0],[0,1]],[[0,1],[0,0]]]
 d=[[1,0],[0,-1]]
 contract("jai,ibk,jk",a,b,d)
+#%%
+L=5
+a= np.array([[[1., 0.],[0., 1.]],[[0., 1.],[1., 0.]]])
+arr = [a for _ in range(L)]
+arr.insert(0,np.array([[1,0],[0,1]]))
+arr.append(np.array([[0., 1.],[1., 0.]]))
+p=qtn.tensor_1d.MatrixProductState(arr)
+tensors=[i for i in p.tensors]
+
+b0=np.array([0,1])
+b1=np.array([1,0])
+b=[b0,b1]
+
+for i in range(len(tensors)):
+    tensors.append(qtn.Tensor())
+    tensors[-1].new_ind(f"k{i}", size=2)
+for i,j in enumerate("0000000"):
+    tensors[i+L+2].modify(data=b[int(j)],tags=(j))
+mps = qtn.TensorNetwork(tensors)
+mps.draw()
+
+print(mps^...)
