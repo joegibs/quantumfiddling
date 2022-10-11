@@ -482,3 +482,14 @@ mps = qtn.TensorNetwork(tensors)
 mps.draw()
 
 print(mps^...)
+#%%
+A = qtn.MPO_rand_herm(7, bond_dim=7, tags=['HAM'])
+pH = p.H
+
+# This inplace modifies the indices of each to form overlap
+p.align_(A, pH)
+
+(pH & A & p).draw(color='HAM', iterations=20, initial_layout='kamada_kawai')
+#%%
+peps = qtn.PEPS.rand(Lx=2, Ly=2, bond_dim=2, seed=666)
+peps.show()

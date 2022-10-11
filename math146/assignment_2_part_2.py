@@ -83,7 +83,7 @@ def phi_i(l, theta):
     return np.exp(1j * (l[0] * theta1+l[1] * theta2))
 
 def U_ij(index, T, X=[0, 2 * np.pi], **kwargs):
-    f = lambda x: np.conjugate(phi_i([index[0],index[1]], theta)) * phi_i([index[2],index[3]], T(theta, **kwargs))
+    f = lambda x: np.conjugate(phi_i([index[0],index[1]], x)) * phi_i([index[2],index[3]], T(x, **kwargs))
     n=100
     x=np.linspace(X[0], X[1],n,endpoint=False)
     y=np.linspace(X[0], X[1],n,endpoint=False)
@@ -156,6 +156,11 @@ axs[0].set_title('Continuous')
 
 U,f = gen_u_and_f(L,T,**kwargs)
 g=contract("ijkm,jk->im",U,f)
+g=contract("ijkm,jk->im",U,np.reshape(g,np.shape(f)))
+
+g=contract("ijkm,jk->im",U,np.reshape(g,np.shape(f)))
+g=contract("ijkm,jk->im",U,np.reshape(g,np.shape(f)))
+
 zn2=basis_expansion(g,phi_i,theta).real
 
 axs[1].contourf(theta[0],theta[1], zn2)
@@ -174,13 +179,13 @@ plt.close("all")  # Clear anything left over from prior runs.
 n=100
 a1 = 1/10
 a2 = 1/10
-L  = 2
-kappa=1
-T = T_skew_rotation
+L  = 3
+kappa=5
+T = T_rotation
 theta=init_space(n)
 
 kwargs = {'a1':a1,'a2':a2,'A':np.array([[2,1],[1,1]]),'kappa':kappa}
-Nt = 10
+Nt = 100
 
 class data_z:
     def __init__(self, angle,Ud,fd, T,**kwargs):
