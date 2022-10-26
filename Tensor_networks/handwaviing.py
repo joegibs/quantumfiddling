@@ -9,7 +9,7 @@ import quimb as qu
 import quimb.tensor as qtn
 import matplotlib.pyplot as plt
 import numpy as np
-
+from quimb import *
 import itertools
 
 from opt_einsum import contract
@@ -483,7 +483,7 @@ mps.draw()
 
 print(mps^...)
 #%%
-A = qtn.MPO_rand_herm(7, bond_dim=7, tags=['HAM'])
+A = qtn.MPO_rand_herm(7, bond_dim=3, tags=['HAM'])
 pH = p.H
 
 # This inplace modifies the indices of each to form overlap
@@ -491,5 +491,241 @@ p.align_(A, pH)
 
 (pH & A & p).draw(color='HAM', iterations=20, initial_layout='kamada_kawai')
 #%%
-peps = qtn.PEPS.rand(Lx=2, Ly=2, bond_dim=2, seed=666)
+peps = qtn.PEPS.rand(Lx=3, Ly=3, bond_dim=2, seed=666)
 peps.show()
+norm = peps.H & peps
+norm.draw(color=norm.site_tags, legend=False, figsize=(4, 4))
+#%%
+%%time
+a=norm.contract_boundary(max_bond=32)
+
+#%%
+L = 44
+zeros = '0' * ((L - 2) // 3)
+binary = zeros + '1' + zeros + '1' + zeros
+print('psi0:', f"|{binary}>")
+
+psi0 = qtn.MPS_computational_state(binary)
+psi0.show()
+
+H = qtn.ham_1d_heis(L)
+
+tebd = qtn.TEBD(psi0, H)
+
+# Since entanglement will not grow too much, we can set quite
+#     a small cutoff for splitting after each gate application
+tebd.split_opts['cutoff'] = 1e-12
+
+# times we are interested in
+ts = np.linspace(0, 80, 101)
+
+mz_t_j = []  # z-magnetization
+be_t_b = []  # block entropy
+sg_t_b = []  # schmidt gap
+
+# range of bonds, and sites
+js = np.arange(0, L)
+bs = np.arange(1, L)
+
+for psit in tebd.at_times(ts, tol=1e-3):
+    mz_j = []
+    be_b = []
+    sg_b = []
+
+    # there is one more site than bond, so start with mag
+    #     this also sets the orthog center to 0
+    mz_j += [psit.magnetization(0)]
+
+    for j in range(1, L):
+        # after which we only need to move it from previous site
+        mz_j += [psit.magnetization(j, cur_orthog=j - 1)]
+        be_b += [psit.entropy(j, cur_orthog=j)]
+        sg_b += [psit.schmidt_gap(j, cur_orthog=j)]
+
+    mz_t_j += [mz_j]
+    be_t_b += [be_b]
+    sg_t_b += [sg_b]
+    #%%
+plt.figure(figsize=(12, 7))
+
+# plot the magnetization
+ax1 = plt.subplot(131)
+plt.pcolormesh(js, ts, np.real(mz_t_j), vmin=-0.5, vmax=0.5)
+plt.set_cmap('RdYlBu')
+plt.colorbar()
+plt.title('Z-Magnetization')
+plt.xlabel('Site')
+plt.ylabel('time [ $Jt$ ]')
+
+# plot the entropy
+ax2 = plt.subplot(132, sharey=ax1)
+plt.pcolormesh(bs, ts, be_t_b)
+plt.setp(ax2.get_yticklabels(), visible=False)
+plt.set_cmap('viridis'), plt.colorbar()
+plt.title('Block Entropy')
+plt.xlabel('Bond')
+
+# plot the schmidt gap
+ax3 = plt.subplot(133, sharey=ax1)
+plt.pcolormesh(bs, ts, sg_t_b, vmin=0, vmax=1)
+plt.setp(ax3.get_yticklabels(), visible=False)
+plt.set_cmap('magma_r')
+plt.colorbar()
+plt.title('Schmidt Gap')
+plt.xlabel('Bond')
+
+plt.show()
+# #%%
+# Lx = 3
+# Ly = 3
+# zeros = '0' * ((L - 2) // 3)
+# binary = zeros + '1' + zeros + '1' + zeros
+# print('psi0:', f"|{binary}>")
+
+# psi0 = qtn.PEPS.rand(Lx,Ly,bond_dim=2)
+# psi0.show()
+
+# H = qtn.ham_2d_heis(Lx,Ly)
+
+# tebd = qtn.TEBD2D(psi0, H)
+
+# # Since entanglement will not grow too much, we can set quite
+# #     a small cutoff for splitting after each gate application
+# # tebd.split_opts['cutoff'] = 1e-12
+
+# # times we are interested in
+# ts = np.linspace(0, 80, 11)
+
+# mz_t_j = []  # z-magnetization
+# be_t_b = []  # block entropy
+# sg_t_b = []  # schmidt gap
+
+# # range of bonds, and sites
+# js = np.arange(0, L)
+# bs = np.arange(1, L)
+
+# for time in ts:
+#     tebd.evolve(1,7.2)
+#     psit = tebd.get_state()
+#     mz_j = []
+#     be_b = []
+#     sg_b = []
+
+#     # there is one more site than bond, so start with mag
+#     #     this also sets the orthog center to 0
+#     mz_j += [psit.magnetization(0)]
+
+#     for j in range(1, L):
+#         # after which we only need to move it from previous site
+#         mz_j += [psit.magnetization(j, cur_orthog=j - 1)]
+#         be_b += [psit.entropy(j, cur_orthog=j)]
+#         sg_b += [psit.schmidt_gap(j, cur_orthog=j)]
+
+#     mz_t_j += [mz_j]
+#     be_t_b += [be_b]
+#     sg_t_b += [sg_b]
+#%%
+L=2
+mps = qtn.MPS_computational_state('00',)
+XX = pauli('X') & pauli('X')
+
+YY = pauli('Y') & pauli('Y')
+Z = pauli('Z')
+H = qtn.LocalHam1D(2,H2=XX+YY,H1=Z)
+
+tebd = qtn.TEBD(mps, H)
+
+# Since entanglement will not grow too much, we can set quite
+#     a small cutoff for splitting after each gate application
+tebd.split_opts['cutoff'] = 1e-12
+
+# times we are interested in
+ts = np.linspace(0, 10, 10)
+
+mz_t_j = []  # z-magnetization
+be_t_b = []  # block entropy
+sg_t_b = []  # schmidt gap
+
+# range of bonds, and sites
+js = np.arange(0, L)
+bs = np.arange(1, L)
+
+for psit in tebd.at_times(ts, tol=1e-3):
+    print(psit.arrays)
+#%%
+L=3
+XX = pauli('X') & pauli('X')
+
+YY = pauli('Y') & pauli('Y')
+
+fT = np.array([[0,0],[1,0]])
+f = np.array([[0,1],[0,0]])
+cT=1/(np.sqrt(2))*(f+fT)
+c= (-fT+f)/(1j*np.sqrt(2))
+
+XX = pauli('X') & pauli('X')
+YY = pauli('Y') & pauli('Y')
+
+H = qtn.LocalHam1D(3,H2=c@cT)
+
+#%%
+'''more or less correct structure
+need to check ham
+correlation func'''
+# need this one thing
+cT = np.array([[0,0],[1,0]])
+c = np.array([[0,1],[0,0]])
+
+L=4
+J=1
+mps = qtn.MPS_rand_state(L,bond_dim=2,cyclic=True)
+
+H2 = {(i, i + 1): kron(cT,c) + kron(cT,c) for i in range(1,L)}
+H2[(0,1)]=kron(cT,c)+kron(cT,c)
+H2[(L-1,0)]=kron(cT,c)+kron(cT,c)
+H1 = {i: cT@c for i in range(L)}
+
+H = qtn.LocalHam1D(L=L, H2=H2,H1 = H1,cyclic=True)
+
+tebd = qtn.TEBD(mps, H)
+
+# Since entanglement will not grow too much, we can set quite
+#     a small cutoff for splitting after each gate application
+tebd.split_opts['cutoff'] = 1e-12
+
+# times we are interested in
+ts = np.linspace(0, 4, 5)
+
+corr_b = []
+# range of bonds, and sites
+js = np.arange(0, L)
+bs = np.arange(1, L)
+
+
+for psit in tebd.at_times(ts, tol=1e-3):
+
+    corr = []
+    # there is one more site than bond, so start with mag
+    #     this also sets the orthog center to 0
+
+    for j in range(1, L):
+        # after which we only need to move it from previous site
+        # be_b += [psit.entropy(j, cur_orthog=j)]
+        corr += [psit.correlation(identity(2),0,j).real]
+    corr_b += [corr]
+
+    #%%
+plt.plot(corr)
+#%%
+plt.figure(figsize=(12, 7))
+
+# plot the entropy
+ax1 = plt.subplot(131)
+plt.pcolormesh(bs, ts, corr_b)
+plt.setp(ax1.get_yticklabels(), visible=False)
+plt.set_cmap('viridis'), plt.colorbar()
+plt.title('correlation')
+plt.xlabel('Bond')
+
+
+plt.show()
