@@ -6,7 +6,7 @@ using Plots
 Random.seed!(1234)
 
 let
-  N = 1000
+  N = 100
 
   # Create N spin-one degrees of freedom
   sites = siteinds("Fermion", N)
@@ -23,7 +23,8 @@ let
   H = MPO(os, sites)
 
   # Create an initial random matrix product state
-  psi0 = randomMPS(sites, 10)
+  psi0 = [isodd(n) ? "Up" : "Dn" for n in 1:N]
+
 
   # Plan to do 5 DMRG sweeps:
   nsweeps = 5
