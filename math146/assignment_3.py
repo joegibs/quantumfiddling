@@ -5,7 +5,7 @@ from matplotlib.collections import LineCollection
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from scipy.stats import vonmises as vonmises
 import scipy.integrate as integrate
-from scipy.special import iv as bessel
+from scipy.special import jv as bessel
 #%%
 
 def composition(theta, T, f, **kwargs):
@@ -99,16 +99,16 @@ def gen_u_and_f(alpha,kappa,L,T):
 """
 Generate the A_L matrix
 """
-L=50
-kappa=5
-def gen_A_L(L):
+L=2
+kappa=3
+def gen_A_L(L,kappa):
     #Toeplitz matrix of the expansion coefficients
     A_L=np.zeros((2*L+1,2*L+1))
     for ij in range(-2*L,2*L+1):
-        ans = bessel(abs(ij), kappa) / bessel(0, kappa)
+        ans = bessel(np.abs(ij), kappa) / bessel(0, kappa)
         A_L+=np.diag([ans]*(2*L-abs(ij)+1),ij)
     return A_L
-A_L=gen_A_L(L)
+A_L=gen_A_L(L,kappa)
 
 eigval,eigvecs=np.linalg.eigh(A_L)
 #%%
@@ -148,14 +148,23 @@ length = 200
 theta = np.linspace(0,2*np.pi,length)
 tot = np.zeros(length,dtype='complex')
 
-for i,eigvec in enumerate(eigvecs.T):
+for i,eigvec in enumerate(eigvecs[:,:]):
     expan = np.zeros_like(theta, dtype="complex")
-    for ij in np.ndindex(np.shape(eigvec)):
-        expan = expan + eigvec[ij] * phi_i(lplus1_space(ij[0]), theta)
+    # print(i,eigvec)
+    for j,val in enumerate(eigvec):
+        # print(j, val)
+        expan += val * phi_i(lplus1_space(j), theta)
     tot=tot+expan
-    if i==99:
-        plt.plot(theta,np.abs(expan))
-        plt.plot(theta,f_vonmis(theta,**{'kappa':kappa}))
+    # if i==0:
+    #     plt.plot(theta,np.real(expan))
+    #     plt.plot(theta,f_vonmis(theta,**{'kappa':kappa}))
 
 #%%
-plt.plot(theta,np.abs(tot))
+plt.plot(theta,np.real(tot))
+plt.plot(theta,f_vonmis(theta,**{'kappa':kappa}))
+
+#%%
+"""
+Write code that implements RL for the von Mises kernel from (3) or another kernel of your
+choice. 
+"""
