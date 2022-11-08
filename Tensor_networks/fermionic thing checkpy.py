@@ -51,8 +51,8 @@ cT = np.array([[0,0],[1,0]])
 c = np.array([[0,1],[0,0]])
 fT = np.array([[0,0],[1,0]])
 f = np.array([[0,1],[0,0]])
-# cT=1/(np.sqrt(2))*(f+fT)
-# c= (-fT+f)/(1j*np.sqrt(2))
+cT=1/(np.sqrt(2))*(f+fT)
+c= (-fT+f)/(1j*np.sqrt(2))
 
 corr = np.empty(L)
 for j in tqdm(range(1, L)):

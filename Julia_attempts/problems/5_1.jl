@@ -1,6 +1,6 @@
 using ITensors
 using PyCall
-n=5
+n=10
 en_vec= zeros(n)
 for N in 50:100:50+100*(n-1)
     sites = siteinds("S=1/2",N)

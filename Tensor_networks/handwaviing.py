@@ -220,28 +220,7 @@ whilst n has value 1 if and only if all legs differ and 0 otherwise
 L = 13
 
 # create the nodes, by default just the scalar 1.0
-tensors = [qtn.Tensor(tags='e') if i<6 else qtn.Tensor(tags='n') for i in range(L)]
 
-tensors[0].new_bond(tensors[6], size=3)
-tensors[6].new_bond(tensors[1], size=3)
-
-tensors[0].new_bond(tensors[7], size=3)
-tensors[7].new_bond(tensors[2], size=3)
-
-tensors[1].new_bond(tensors[8], size=3)
-tensors[8].new_bond(tensors[3], size=3)
-
-tensors[2].new_bond(tensors[9], size=3)
-tensors[9].new_bond(tensors[4], size=3)
-
-tensors[3].new_bond(tensors[10], size=3)
-tensors[10].new_bond(tensors[4], size=3)
-
-tensors[3].new_bond(tensors[11], size=3)
-tensors[11].new_bond(tensors[5], size=3)
-
-tensors[4].new_bond(tensors[12], size=3)
-tensors[12].new_bond(tensors[5], size=3)
 
 
 def flat_num(arr):
@@ -262,7 +241,7 @@ for i in range(6,13):
 
 
 mps = qtn.TensorNetwork(tensors)
-# mps.draw(color=['e','n'])
+mps.draw(color=['e','n'])
 print(mps^...)
 #%%
 """
@@ -275,6 +254,7 @@ def levi_cevita_tensor(dim):
     for x in itertools.permutations(tuple(range(dim))):
         mat = np.zeros((dim, dim), dtype=np.int32)
         for i, j in zip(range(dim), x):
+            print(i,j, x)
             mat[i, j] = 1
         arr[x]=int(np.linalg.det(mat))
     return arr

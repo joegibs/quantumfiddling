@@ -5,7 +5,7 @@ from matplotlib.collections import LineCollection
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from scipy.stats import vonmises as vonmises
 import scipy.integrate as integrate
-from scipy.special import jv as bessel
+from scipy.special import iv as bessel
 #%%
 
 def composition(theta, T, f, **kwargs):
@@ -99,8 +99,8 @@ def gen_u_and_f(alpha,kappa,L,T):
 """
 Generate the A_L matrix
 """
-L=2
-kappa=3
+L=3
+kappa=1
 def gen_A_L(L,kappa):
     #Toeplitz matrix of the expansion coefficients
     A_L=np.zeros((2*L+1,2*L+1))
@@ -147,18 +147,14 @@ on S1 associated with eigenvector uj. What do you observe as L increases
 length = 200
 theta = np.linspace(0,2*np.pi,length)
 tot = np.zeros(length,dtype='complex')
+# eta = [expan for i in range(2*L+1)]
 
-for i,eigvec in enumerate(eigvecs[:,:]):
+for i,eigvec in enumerate(eigvecs):
     expan = np.zeros_like(theta, dtype="complex")
-    # print(i,eigvec)
+    phi = phi_i(lplus1_space(i), theta)
     for j,val in enumerate(eigvec):
-        # print(j, val)
-        expan += val * phi_i(lplus1_space(j), theta)
-    tot=tot+expan
-    # if i==0:
-    #     plt.plot(theta,np.real(expan))
-    #     plt.plot(theta,f_vonmis(theta,**{'kappa':kappa}))
-
+        expan += val * phi
+    tot+=expan
 #%%
 plt.plot(theta,np.real(tot))
 plt.plot(theta,f_vonmis(theta,**{'kappa':kappa}))
