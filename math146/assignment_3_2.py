@@ -19,7 +19,7 @@ from ipywidgets import widgets, interactive, interact, IntSlider
 def phi_i(l,theta):
     return np.exp(1j*l*theta)
 #%%
-L=50
+L=5
 kappa=8
 def gen_A_L(L,kappa):
     #Toeplitz matrix of the expansion coefficients
@@ -51,7 +51,7 @@ plt.plot(theta,ets[x])
 plt.show()
 
 #%%
-ep = 1/80 
+ep = 1/180 
 thp = np.linspace(0, 2*np.pi, length)
 thp2 = thp + np.pi
 point_w = np.zeros(length, dtype = 'complex')
@@ -63,10 +63,11 @@ for i in range(length):
     xi_0 = np.zeros(2*L+1, dtype = 'complex')    
     for j in range(-L, L):
         for an in thp:
-            xi_0[j+L] += np.sqrt((p_theta_thetap(theta[i], an)) * phi_i(j, an))
+            xi_0[j+L] += (p_theta_thetap(theta[i], an) * phi_i(j, an))
+    
     xi_norm = np.linalg.norm(xi_0)
     xi = xi_0/xi_norm
     point_w[i] = np.matmul(np.conjugate(xi), np.matmul(A_L, xi))/(2*np.pi)
     
-plt.plot(thp, point_w.real)
-plt.plot(thp,vonmises(kappa).pdf(thp))
+plt.plot(np.mod(thp2,2*np.pi), point_w.real)
+plt.plot(np.mod(thp2,2*np.pi),vonmises(kappa).pdf(thp))
