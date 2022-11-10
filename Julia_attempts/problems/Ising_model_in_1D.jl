@@ -6,11 +6,11 @@ using ITensors
 using PyCall
 using Plots
 
-N=500
+N= 100
 B = 1
 J=2
 
-inter = -0.5:0.05:0.5
+inter = -2:0.05:2
 en_vec= zeros(length(inter))
 for (i,B) in enumerate(inter)
     sites = siteinds("S=1/2",N)
@@ -21,7 +21,7 @@ for (i,B) in enumerate(inter)
     end
     hterms -= J,"Sz",N,"Sz",1  # term 'wrapping' around the ring
     for j=1:(N) #add magnetic terms
-        hterms -= B,"Sz",j
+        hterms -= B,"Sx",j
     end
     
     H = MPO(hterms,sites)
@@ -31,8 +31,8 @@ for (i,B) in enumerate(inter)
 
     maxdim!(sweeps,10,20,100,100,200) # gradually increase states kept
     cutoff!(sweeps,1E-10) # desired truncation error
-    val = zeros(10)
-    for i in 1:10
+    val = zeros(5)
+    for i in 1:5
         psi0 = randomMPS(ComplexF64, sites)
         energy,psi = dmrg(H,psi0,sweeps)
         magz = expect(psi,"Sz")

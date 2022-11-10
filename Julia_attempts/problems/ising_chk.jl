@@ -1,5 +1,5 @@
-J=2
-B=-.05
+J=0.1
+B=0
 N=10
 sites = siteinds("S=1/2",N)
 
