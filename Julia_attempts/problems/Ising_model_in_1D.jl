@@ -5,12 +5,14 @@ maybe working not sure about temperature
 using ITensors
 using PyCall
 using Plots
+using Statistics
 
 N= 100
-B = 1
-J=2
+n=10
+B = .01
+J=0
 
-inter = -2:0.05:2
+inter = -B:2*B/n:B
 en_vec= zeros(length(inter))
 for (i,B) in enumerate(inter)
     sites = siteinds("S=1/2",N)
@@ -21,7 +23,8 @@ for (i,B) in enumerate(inter)
     end
     hterms -= J,"Sz",N,"Sz",1  # term 'wrapping' around the ring
     for j=1:(N) #add magnetic terms
-        hterms -= B,"Sx",j
+        hterms -= B,"Sz",j
+        hterms -= 0.1B,"Sx",j
     end
     
     H = MPO(hterms,sites)
@@ -31,9 +34,10 @@ for (i,B) in enumerate(inter)
 
     maxdim!(sweeps,10,20,100,100,200) # gradually increase states kept
     cutoff!(sweeps,1E-10) # desired truncation error
-    val = zeros(5)
-    for i in 1:5
-        psi0 = randomMPS(ComplexF64, sites)
+    val = zeros(3)
+    for i in 1:3
+        # psi0 = productMPS(sites, n -> isodd(n) ? "Dn" : "Dn")
+        psi0 = randomMPS(sites, 3)
         energy,psi = dmrg(H,psi0,sweeps)
         magz = expect(psi,"Sz")
         global val[i] = 2*mean(magz)

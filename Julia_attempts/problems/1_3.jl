@@ -36,4 +36,4 @@ En1 = ITensor(ones(3,3) -LinearAlgebra.I(3),l[12],l[14])
 Fe = ITensor(LinearAlgebra.I(3),  l[13],l[14])
 
 cont = *(Ae,An1,An2,Be,Bn,Ce,Cn,De,Dn1,Dn2,Ee,En1,Fe)
-print(cont.tensor)
+print(cont[])
