@@ -14,12 +14,11 @@ from scipy.stats import vonmises as vonmises
 import scipy.integrate as integrate
 from scipy.special import iv as bessel
 
-from ipywidgets import widgets, interactive, interact, IntSlider
 #%%
 def phi_i(l,theta):
     return np.exp(1j*l*theta)
 #%%
-L=5
+L=8
 kappa=8
 def gen_A_L(L,kappa):
     #Toeplitz matrix of the expansion coefficients
@@ -41,23 +40,29 @@ ets=[]
 for i,eigvec in enumerate(eigvecs.T):
     eta_j = np.zeros_like(theta,dtype='complex')
     for x,j in enumerate(eigvec):
-        eta_j += j.real *  phi_i(x-L,theta)
+        eta_j += -j.real *  phi_i(x-L,theta)
     ets.append(eta_j.real)
 
-#%%
-x=10
+#%% 
+"""
+Question 1, your code had a fancy slide i just have a variable to select which eigen val
+"""
+x=16
 
 plt.plot(theta,ets[x])
 plt.show()
 
 #%%
+"""
+Question 2: point wise evaluation plotted with a shift
+"""
 ep = 1/180 
 thp = np.linspace(0, 2*np.pi, length)
 thp2 = thp + np.pi
 point_w = np.zeros(length, dtype = 'complex')
 
 def p_theta_thetap(th, thp):
-    return np.exp(np.cos(th-thp)/ep)/bessel(0, ep**(-1))
+    return np.sqrt(np.exp(np.cos(th-thp)/ep)/bessel(0, ep**(-1)))
 
 for i in range(length):
     xi_0 = np.zeros(2*L+1, dtype = 'complex')    
