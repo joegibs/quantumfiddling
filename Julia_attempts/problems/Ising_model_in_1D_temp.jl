@@ -5,8 +5,7 @@ using Printf
 # Set up
 #
 function ITensors.op(::OpName"expτSS", ::SiteType"S=1/2", s1::Index, s2::Index; τ)
-  # print("B: ",B)
-  h = 1 / 2 * op("Sz", s1) * op("Sz", s2) +
+  h = J * op("Sz", s1) * op("Sz", s2) +
       B*op("Sz", s1) * op("I", s2)
   return exp(τ * h)
 end
@@ -18,6 +17,7 @@ beta_max=1.0
 # Make an array of 'site' indices
 s = siteinds("S=1/2", N)
 B = 2.5
+J=0
 n=100
 iter = -B:2*B/n:B
 mg_vec3 = zeros(n+1)
@@ -55,7 +55,7 @@ for (i,B) in enumerate(iter)
   append!(gates, reverse(gates))
 
   #make rho from groundstate
-  rho = outer(psi0',psi0)
+  rho = outer(psi',psi)
   magz = inner(rho,SzH)/N
 
   # en_vec=zeros(Int(beta_max/δτ)+1)
