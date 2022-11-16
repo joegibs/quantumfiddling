@@ -162,8 +162,8 @@ I_pad = np.lib.pad(I_,(0,(2*L+1)))
 """
 merge!
 """
-A_L_TOT = I_pad+A_L_pad
-U_TOT = I_pad + U_pad
+A_L_TOT = A_L_pad
+U_TOT = U_pad
 
 """
 SVD till i cry
@@ -182,55 +182,46 @@ SVD till i cry
 #         mat=s@v
 #     return arrs
 size=np.prod(np.shape(A_L_TOT))
-length = np.log(size)/np.log(2)
-dims = [2]*int(length)
+length_1 = np.log(size)/np.log(2)
+dims = [2]*int(length_1)
 psi_A = A_L_TOT.reshape(1,p2**2)
-mps_A = qtn.MatrixProductState.from_dense(psi, dims)
+mps_A = qtn.MatrixProductState.from_dense(psi_A, dims)
 
 size=np.prod(np.shape(U_TOT))
-length = np.log(size)/np.log(2)
-dims = [2]*int(length)
+length_1 = np.log(size)/np.log(2)
+dims = [2]*int(length_1)
 psi_U = U_TOT.reshape(1,p2**2)
-mps_U = qtn.MatrixProductState.from_dense(psi, dims)
+mps_U = qtn.MatrixProductState.from_dense(psi_U, dims)
 
-H = qtn.MPO_identity(6)
+H = qtn.MPO_identity(6,tags=["IDENT"])
+H = qtn.MPO_ham_heis(6,tags=["IDENT"])
 
-H@mps_A
+mps_A.align_(H)
+tot = (H&mps_A)
+tot.draw(color='IDENT')
+fin = tot^...
+new_g = fin.fuse({'b0':['b0','b1','b2'],'b1':['b3','b4','b5']}).data
+
+new_g = new_g[3:,3:]
+for i in range(length):
+    xi_0 = np.zeros(2*L+1, dtype = 'complex')    
+    for j in range(-L, L):
+        for an in thp:
+            xi_0[j+L] += (p_theta_thetap(theta[i], an) * phi_i(j, an))
+    
+    xi_norm = np.linalg.norm(xi_0)
+    xi = xi_0/xi_norm
+    point_w[i] = np.matmul(np.conjugate(xi), np.matmul(new_g, xi))/(2*np.pi)
+    
+plt.plot(np.mod(thp2,2*np.pi), point_w.real,'o')
+plt.plot(np.mod(thp2,2*np.pi),vonmises(kappa).pdf(thp))
 #%%
-test = qtn.Tensor(data=A_L, inds = ("A","B"))
-def remove_diag(A_L):
-    return A_L[~np.eye(A_L.shape[0],dtype=bool)].reshape(A_L.shape[0],-1)
-
-chk=remove_diag(A_L)
-chk.reshape((2,int(np.prod(chk.shape)/2)))
-u,s,v=svd(chk.reshape((2,int(np.prod(chk.shape)/2))))
-tensors = [qtn.Tensor() for _ in range(L+1)]
-tensors[0].new_ind(f"k1", size=2)
-tensors[0].new_ind(f"p1", size=2)
-tensors[1].new_ind(f"k1", size=2)
-tensors[1].new_ind(f"p2", size=3)
-
-tensors[0].modify(data=u)
-tensors[1].modify(data=np.dot(np.diag(s),v))
-
-mps = qtn.TensorNetwork(tensors)
-mps.draw()
-
-def make_tensors(chkT,tensors):
-    mat = A_L
-    for i,j in enumerate(tensors):
-        u,s,v = svd(mat)
-        tensors[i].new_ind(f"k{i}", size=2)
-        tensors[i].new_ind(f"p{i}", size=2)
-        .reshape((2,int(np.prod(chk.shape)/2)))
-    return tensors
-# mps^...
-ta = qtn.Tensor(u, inds=['a', 'x'], tags='A')
-tb = qtn.Tensor(np.dot(np.diag(s),v).T, inds=['b', 'x'], tags='B')
-
-# matrix multiplication but with indices aligned automatically
-fin = (ta @ tb).data.T
-
-
-def add_diag(fin):
-    return
+"""
+get coeff
+"""
+g = [bessel(np.abs(ij), kappa) / bessel(0, kappa) for ij in range(5)]
+"""
+pad
+"""
+psi = np.lib.pad(g,(3,0))
+mps_A = qtn.MatrixProductState.from_dense(psi, dims)
