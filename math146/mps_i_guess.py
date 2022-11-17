@@ -165,22 +165,6 @@ merge!
 A_L_TOT = A_L_pad
 U_TOT = U_pad
 
-"""
-SVD till i cry
-"""
-# def return_decomp(A_L_TOT):
-#     size=np.prod(np.shape(A_L_TOT))
-#     length = np.log(size)/np.log(2)
-#     arrs= []
-    
-#     #reshape to 2^2 x 2^(p2-2)
-#     mat = A_L
-#     for i in range(length-1,0,-1):
-#         np.reshape(mat,(2,2**i))
-#         u,s,v=svd(mat)
-#         arrs.append(u)
-#         mat=s@v
-#     return arrs
 size=np.prod(np.shape(A_L_TOT))
 length_1 = np.log(size)/np.log(2)
 dims = [2]*int(length_1)
@@ -194,7 +178,8 @@ psi_U = U_TOT.reshape(1,p2**2)
 mps_U = qtn.MatrixProductState.from_dense(psi_U, dims)
 
 H = qtn.MPO_identity(6,tags=["IDENT"])
-H = qtn.MPO_ham_heis(6,tags=["IDENT"])
+# H = qtn.MPO_ham_heis(6,tags=["IDENT"])
+# H = qtn.MPO_product_operator([test[5]]*6)
 
 mps_A.align_(H)
 tot = (H&mps_A)
@@ -216,12 +201,110 @@ for i in range(length):
 plt.plot(np.mod(thp2,2*np.pi), point_w.real,'o')
 plt.plot(np.mod(thp2,2*np.pi),vonmises(kappa).pdf(thp))
 #%%
+H = qtn.ham_1d_heis(6)
+
+# check the two site term
+H.terms[0, 1]=np.array([[ -0.99-0.14j,  0.  ,  0.  ,  0.  ],
+                        [ 0.  , 0.07-1.j,  0 ,  0.  ],
+                        [ 0.  ,  0 , 1.,  0.  ],
+                        [ 0.  ,  0.  ,  0.  ,  0.07+1.j]])
+H.terms[1, 2]=np.array([[ -0.99-0.14j,  0.  ,  0.  ,  0.  ],
+                        [ 0.  , 0.07-1.j,  0 ,  0.  ],
+                        [ 0.  ,  0 , 1.,  0.  ],
+                        [ 0.  ,  0.  ,  0.  ,  0.07+1.j]])
+H.terms[2, 3]=np.array([[ -0.99-0.14j,  0.  ,  0.  ,  0.  ],
+                        [ 0.  , 0.07-1.j,  0 ,  0.  ],
+                        [ 0.  ,  0 , 1.,  0.  ],
+                        [ 0.  ,  0.  ,  0.  ,  0.07+1.j]])
+H.terms[3, 4]=np.array([[ -0.99-0.14j,  0.  ,  0.  ,  0.  ],
+                        [ 0.  , 0.07-1.j,  0 ,  0.  ],
+                        [ 0.  ,  0 , 1.,  0.  ],
+                        [ 0.  ,  0.  ,  0.  ,  0.07+1.j]])
+H.terms[4, 5]=np.array([[0.07+1.j,  0.  ,  0.  ,  0.  ],
+                        [ 0.  ,1,  0 ,  0.  ],
+                        [ 0.  ,  0 , 0.07+1.j,  0.  ],
+                        [ 0.  ,  0.  ,  0.  ,  -0.99-0.14j]])
+H.terms[5, 6]=np.array([[0.07+1.j,  0.  ,  0.  ,  0.  ],
+                        [ 0.  ,1,  0 ,  0.  ],
+                        [ 0.  ,  0 , 0.07+1.j,  0.  ],
+                        [ 0.  ,  0.  ,  0.  ,  -0.99-0.14j]])
+tebd = qtn.TEBD(mps_A, H)
+
+tebd.update_to(T=5, tol=1e-3)
+
+tot = tebd.pt
+fin=tot^...
+new_g = fin.fuse({'b0':['k0','k1','k2'],'b1':['k3','k4','k5']}).data
+new_g = new_g[3:,3:]
+for i in range(length):
+    xi_0 = np.zeros(2*L+1, dtype = 'complex')    
+    for j in range(-L, L):
+        for an in thp:
+            xi_0[j+L] += (p_theta_thetap(theta[i], an) * phi_i(j, an))
+    
+    xi_norm = np.linalg.norm(xi_0)
+    xi = xi_0/xi_norm
+    point_w[i] = np.matmul(np.conjugate(xi), np.matmul(new_g, xi))/(2*np.pi)
+    
+plt.plot(np.mod(thp2,2*np.pi), point_w.real,'o')
+plt.plot(np.mod(thp2,2*np.pi),vonmises(kappa).pdf(thp))
+
+#%%
 """
-get coeff
+not sure if usefull idk what im doing
 """
-g = [bessel(np.abs(ij), kappa) / bessel(0, kappa) for ij in range(5)]
-"""
-pad
-"""
-psi = np.lib.pad(g,(3,0))
-mps_A = qtn.MatrixProductState.from_dense(psi, dims)
+dims = [2]*3
+psi = [bessel(np.abs(ij), kappa) / bessel(0, kappa) for ij in range(2*L+1)]
+psi = np.lib.pad(psi,(8-(2*L+1),0))
+mps_p = qtn.MatrixProductState.from_dense(psi,dims)
+
+arrs=[]
+mat = A_L_TOT.reshape((1,64))
+for i in range(1):
+    u,s,v = svd(mat.reshape(2**(i+1),2**(5-i)))
+    arrs.append(u)
+    mat = np.diag(s)@v
+    
+    
+    
+#%%
+# 10 qubits and tag the initial wavefunction tensors
+circ = qtn.Circuit(N=10)
+
+# initial layer of hadamards
+for i in range(10):
+    circ.apply_gate('H', i, gate_round=0)
+
+# 8 rounds of entangling gates
+for r in range(1, 9):
+
+    # even pairs
+    for i in range(0, 10, 2):
+        circ.apply_gate('CNOT', i, i + 1, gate_round=r)
+
+    # Y-rotations
+    for i in range(10):
+        circ.apply_gate('RZ', 1.234, i, gate_round=r)
+
+    # odd pairs
+    for i in range(1, 9, 2):
+        circ.apply_gate('CZ', i, i + 1, gate_round=r)
+
+    # X-rotations
+    for i in range(10):
+        circ.apply_gate('RX', 1.234, i, gate_round=r)
+
+# final layer of hadamards
+for i in range(10):
+    circ.apply_gate('H', i, gate_round=r + 1)
+
+circ.psi.draw(color=['PSI0', 'H', 'CNOT', 'RZ', 'RX', 'CZ'])    
+(
+    circ
+    # get the tensor network
+    .amplitude_rehearse(simplify_sequence='ADCRS')['tn']
+    # plot it with each qubit register highlighted
+    .draw(color=[f'I{q}' for q in range(10)])
+)
+
+(circ.psi^...).draw()
