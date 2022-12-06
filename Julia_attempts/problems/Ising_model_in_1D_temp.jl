@@ -1,5 +1,6 @@
 using ITensors
 using Printf
+using Plots
 
 #
 # Set up
@@ -10,17 +11,17 @@ function ITensors.op(::OpName"expτSS", ::SiteType"S=1/2", s1::Index, s2::Index;
   return exp(τ * h)
 end
 
-N=10
+N=100
 cutoff=1E-8
-δτ=0.1 
-beta_max=1.0
+δτ=0.05 
+beta_max=0
 # Make an array of 'site' indices
 s = siteinds("S=1/2", N)
 B = 2.5
 J=0
 n=100
 iter = -B:2*B/n:B
-mg_vec3 = zeros(n+1)
+mg_vec = zeros(n+1)
 for (i,B) in enumerate(iter)
   ######################################
   # Ground state
@@ -41,7 +42,7 @@ for (i,B) in enumerate(iter)
 
 
   psi0 = randomMPS(s)
-  sweeps = Sweeps(5) # number of sweeps is 5
+  sweeps = Sweeps(10) # number of sweeps is 5
 
   energy,psi = dmrg(H,psi0,sweeps)
 
@@ -66,8 +67,9 @@ for (i,B) in enumerate(iter)
   rho = apply(gates, rho; cutoff)
   rho = rho / tr(rho)
   end
-  mg_vec3[i] = magz
+  mg_vec[i] = magz
 
 #   return nothing
 end
+plot(iter,mg_vec)
 plot(iter,[mg_vec mg_vec2 mg_vec3])

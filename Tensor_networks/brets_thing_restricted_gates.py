@@ -98,13 +98,13 @@ print(nx.algorithms.approximation.large_clique_size(G))
 print(clique_counter(G, 3))
 
 #%%
-# pos = nx.circular_layout(G)
-# fig, ax = plt.subplots(figsize=(16, 16))
-# node_opts = {"node_size": 500, "node_color": "w", "edgecolors": "k", "linewidths": 2.0}
-# nx.draw_networkx_nodes(G, pos, **node_opts)
-# nx.draw_networkx_labels(G, pos, font_size=10)
-# nx.draw_networkx_edges(G, pos, width=0.2)
-# plt.show()
+pos = nx.circular_layout(G)
+fig, ax = plt.subplots(figsize=(16, 16))
+node_opts = {"node_size": 500, "node_color": "w", "edgecolors": "k", "linewidths": 2.0}
+nx.draw_networkx_nodes(G, pos, **node_opts)
+nx.draw_networkx_labels(G, pos, font_size=10)
+nx.draw_networkx_edges(G, pos, width=0.2)
+plt.show()
 
 #%%
 def gen_paulis(lis):

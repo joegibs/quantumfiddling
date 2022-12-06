@@ -55,7 +55,7 @@ def gen_graph(n=2):
 
 
 #%%
-n = 4
+n = 2
 G = gen_graph(n)
 G.remove_node("".join("I" for i in range(n)))
 print(nx.algorithms.approximation.large_clique_size(G))
@@ -63,10 +63,10 @@ print(nx.algorithms.approximation.large_clique_size(G))
 #%%
 pos = nx.circular_layout(G)
 fig, ax = plt.subplots(figsize=(32, 32))
-node_opts = {"node_size": 500, "node_color": "w", "edgecolors": "k", "linewidths": 2.0}
+node_opts = {"node_size": 500, "node_color": "w", "edgecolors": "k", "linewidths": 12.0}
 nx.draw_networkx_nodes(G, pos, **node_opts)
 nx.draw_networkx_labels(G, pos, font_size=10)
-nx.draw_networkx_edges(G, pos, width=0.2)
+nx.draw_networkx_edges(G, pos, width=2)
 plt.show()
 
 #%% cliques need to fix
@@ -76,7 +76,7 @@ check=0
 
 max_xs=nx.algorithms.approximation.large_clique_size(G)
 for i in nx.find_cliques(G):
-    if len(i) == 9:#max_xs:
+    if len(i) == max_xs:
         cliques.append(set(i))
 
 # for i in nx.find_cliques(G):
@@ -122,7 +122,8 @@ def find_pauli(lis):
         else:
             st=st+'X'
     return st
-    
+
+#%% not sure what the point of this is I assume a check of previous code
 for i in itertools.combinations(cliques[0],2):
     chk = copy.copy(cliques[0])
     for j in i: chk.remove(j)
@@ -166,7 +167,7 @@ for i in itertools.combinations(clique, 2):
     G[i[0]][i[1]]["color"] = "tab:red"
     G[i[0]][i[1]]["width"] = 2.5
 
-pos = nx.spiral_layout(G)
+pos = nx.circular_layout(G)
 fig, ax = plt.subplots(figsize=(16, 16))
 node_opts = {"node_size": 500, "node_color": "w", "edgecolors": "k", "linewidths": 2.0}
 nx.draw_networkx_nodes(G, pos, **node_opts)

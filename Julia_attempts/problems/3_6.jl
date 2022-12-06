@@ -13,7 +13,6 @@ hterms = OpSum()
 for j=2:(N-1) #add iteraction terms
     hterms -= J,"Sz",j-1,"Sx",j,"Sz",j+1
 end
-# hterms -= J,"Sz",N,"Sz",1  # term 'wrapping' around the ring
 for j=1:(N) #add magnetic terms
     hterms -= h,"Sx",j
 end

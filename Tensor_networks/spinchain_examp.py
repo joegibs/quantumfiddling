@@ -58,7 +58,9 @@ for psit in tebd.at_times(ts, tol=1e-3):
     mz_t_j += [mz_j]
     be_t_b += [be_b]
     sg_t_b += [sg_b]
-#%%
+#%%\
+import matplotlib.pyplot as plt
+    
 plt.figure(figsize=(12, 7))
 
 # plot the magnetization
