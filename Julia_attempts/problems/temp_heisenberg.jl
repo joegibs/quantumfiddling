@@ -13,12 +13,22 @@ For more information on METTS, see the following references:
   New Journal of Physics 12, 055026 (2010) https://doi.org/10.1088/1367-2630/12/5/055026
 
 =#
-
+function entrp(psi,b)
+    orthogonalize!(psi, b)
+    U,S,V = svd(psi[b], (linkind(psi, b-1), siteind(psi,b)))
+    SvN = 0.0
+    for n=1:dim(S, 1)
+    p = S[n,n]^2
+    SvN -= p * log(p)
+    end
+    return SvN
+end
 function ITensors.op(::OpName"expτSS", ::SiteType"S=1/2", s1::Index, s2::Index; τ,B)
   h =
     1 / 2 * op("S+", s1) * op("S-", s2) +
     1 / 2 * op("S-", s1) * op("S+", s2) +
-    1/2*B*(op("Sz", s1) * op("I", s2)+op("I", s1) * op("Sz", s2))
+    op("Sz", s1) * op("Sz", s2)+
+    B*(op("Sz", s1) * op("I", s2)+op("I", s1) * op("Sz", s2))
     return exp(τ * h)
 end
 
@@ -42,16 +52,15 @@ function main(; N=36, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1
   for j in 1:(N - 1)
     terms += 1 / 2, "S+", j, "S-", j + 1
     terms += 1 / 2, "S-", j, "S+", j + 1
-  end
-  for j in 1:N
-    terms += "Sz", j
+    terms += b,"Sz", j,"Sz", j+1
   end
 
   H = MPO(terms, s)
-  for j in 1:(N - 1)
-    terms += "Sz", j
+  terms2 = OpSum()
+  for j in 1:(N)
+    terms2 += "Sz", j
   end
-  Sz = MPO(terms, s)
+  Sz = MPO(terms2, s)
 
 
   # Make τ_range and check δτ is commensurate
@@ -62,7 +71,7 @@ function main(; N=36, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1
 
   energies = Float64[]
   magz = Float64[]
-
+  ents = Float64[]
   for step in 1:(Nwarm + NMETTS)
     if step <= Nwarm
       println("Making warmup METTS number $step")
@@ -81,8 +90,10 @@ function main(; N=36, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1
     if step > Nwarm
       energy = inner(psi', H, psi)
       sz = inner(psi',Sz,psi)
+      ent = entrp(psi,Int(N/2))
       push!(energies, energy)
       push!(magz,sz)
+      push!(ents,ent)
       @printf("  Energy of METTS %d = %.4f\n", step - Nwarm, energy)
     end
 
@@ -97,18 +108,22 @@ function main(; N=36, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1
     end
     psi = productMPS(s, new_state)
   end
-  return energies,magz
+  return energies,magz,ents
 end
 
 data = []
-interval = -3:0.5:3
-N=36
+data_ent=[]
+interval = -2:0.2:2
+N=18
 for i in interval
-  eng,mag = main(N=N,b=i,NMETTS=100,δτ=2, beta=20.0,)
+  eng,mag,ent = main(N=N,b=i,NMETTS=100,δτ=.2, beta=2.0,)
   push!(data,mean(mag)/N)
+  push!(data_ent,mean(ent))
   p = histogram(eng)
   # display(p)
 end
-plot(interval,data)
+plot(interval,[data,data_ent])
 data1=data
 plot(interval,[data,data1])
+
+# Need Cv = dE/dT loop over beta, get energy thn do some discrete drivatives... fun
