@@ -13,6 +13,16 @@ For more information on METTS, see the following references:
   New Journal of Physics 12, 055026 (2010) https://doi.org/10.1088/1367-2630/12/5/055026
 
 =#
+function finite_diff(interval,data)
+    N= length(data)
+    data_diff = Float64[]
+    intervals = Float64[]
+    for i in 1:(N-1)
+        push!(data_diff,(data[i]-data[i+1])/(interval[i]-interval[i+1]))
+        push!(intervals,(interval[i]+interval[i+1])/2)
+    end
+    return intervals,data_diff
+end
 function entrp(psi,b)
     orthogonalize!(psi, b)
     U,S,V = svd(psi[b], (linkind(psi, b-1), siteind(psi,b)))
@@ -52,7 +62,10 @@ function main(; N=36, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1
   for j in 1:(N - 1)
     terms += 1 / 2, "S+", j, "S-", j + 1
     terms += 1 / 2, "S-", j, "S+", j + 1
-    terms += b,"Sz", j,"Sz", j+1
+    terms += "Sz", j,"Sz", j+1
+  end
+  for j in 1:(N)
+    terms += b,"Sz", j
   end
 
   H = MPO(terms, s)
@@ -127,3 +140,19 @@ data1=data
 plot(interval,[data,data1])
 
 # Need Cv = dE/dT loop over beta, get energy thn do some discrete drivatives... fun
+# data = []
+data_eng=[]
+interval =1:1:31#10 .^ range(0, stop=1.5, length=40)
+N=36
+for i in interval
+    beta = i
+    δτ=beta/10
+  eng,mag,ent = main(N=N,b=0,NMETTS=50,δτ=δτ, beta=beta)
+#   push!(data,mean(mag)/N)
+  push!(data_eng,mean(eng))
+#   p = histogram(eng)
+#   display(p)
+end
+plot(interval,data_eng)
+ints,datas=finite_diff(interval,data_eng)
+plot(ints,datas.*ints.*ints)
