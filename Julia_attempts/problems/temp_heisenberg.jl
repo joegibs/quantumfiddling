@@ -2,6 +2,7 @@ using ITensors
 using Printf
 using Plots
 using Statistics
+using FiniteDifferences
 #=
 
 This example code implements the minimally entangled typical thermal state (METTS).
@@ -20,6 +21,16 @@ function finite_diff(interval,data)
     for i in 1:(N-1)
         push!(data_diff,(data[i]-data[i+1])/(interval[i]-interval[i+1]))
         push!(intervals,(interval[i]+interval[i+1])/2)
+    end
+    return intervals,data_diff
+end
+function central_finite_diff(interval,data)
+    N= length(data)
+    data_diff = Float64[]
+    intervals = Float64[]
+    for i in 2:(N-1)
+        push!(data_diff,(data[i-1]-data[i+1])/(2*(interval[i-1]-interval[i+1])))
+        push!(intervals,(interval[i]))
     end
     return intervals,data_diff
 end
@@ -142,11 +153,11 @@ plot(interval,[data,data1])
 # Need Cv = dE/dT loop over beta, get energy thn do some discrete drivatives... fun
 # data = []
 data_eng=[]
-interval =1:1:31#10 .^ range(0, stop=1.5, length=40)
+interval =1:0.5:31#10 .^ range(0, stop=1.5, length=40)
 N=36
 for i in interval
     beta = i
-    δτ=beta/10
+    δτ=0.05
   eng,mag,ent = main(N=N,b=0,NMETTS=50,δτ=δτ, beta=beta)
 #   push!(data,mean(mag)/N)
   push!(data_eng,mean(eng))
@@ -154,5 +165,15 @@ for i in interval
 #   display(p)
 end
 plot(interval,data_eng)
-ints,datas=finite_diff(interval,data_eng)
-plot(ints,datas.*ints.*ints)
+ints,datas=central_finite_diff(interval,data_eng)
+plot(ints.^-1,datas.*ints.*ints)
+#need to do better point diferrentiation method.....
+#structure factor
+
+#1d analouge of cuperates, or fustration, scalin of specific heat
+#https://www.nature.com/articles/s41467-018-06800-2#MOESM1
+#mag field for thermo quantities
+
+#todo clean up code, check magnetic things , ham from the paper
+#talk to kyle 0 temp xxz dft to static structure factor\
+#schollwock book

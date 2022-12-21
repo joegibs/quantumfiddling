@@ -16,9 +16,8 @@ For more information on METTS, see the following references:
 
 function ITensors.op(::OpName"expτSS", ::SiteType"S=1/2", s1::Index, s2::Index; τ,B)
   h =
-    -1 / 2 * op("S+", s1) * op("S-", s2) +
-    -1 / 2 * op("S-", s1) * op("S+", s2) +
-    -1/2*B*(op("Sz", s1) * op("I", s2)+op("I", s1) * op("Sz", s2))
+    -1 * op("Z", s1) * op("Z", s2) +
+    -1*B*(op("X", s1) * op("I", s2))
   return exp(τ * h)
 end
 
@@ -40,7 +39,6 @@ end
 
 function main(; N=18, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1)
   
-
   # Make an array of 'site' indices
   s = siteinds("S=1/2", N)
 
@@ -58,13 +56,15 @@ function main(; N=18, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1
   # Make H for measuring the energy
   terms = OpSum()
   for j in 1:(N - 1)
-    terms += 1 / 2, "S+", j, "S-", j + 1
-    terms += 1 / 2, "S-", j, "S+", j + 1
-    terms += "Sz", j, "Sz", j + 1
+    terms += -1, "Z", j, "Z", j + 1
+  end
+  for j in 1:N
+    terms += -b, "X", j
   end
   H = MPO(terms, s)
+
   for j in 1:(N - 1)
-    terms += "Sz", j, "Sz", j + 1
+    terms += "Z", j, "Z", j + 1
   end
   Sz = MPO(terms, s)
 
@@ -93,20 +93,13 @@ function main(; N=18, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1
 
     # Measure properties after >= Nwarm 
     # METTS have been made
+
     if step > Nwarm
       energy = inner(psi', H, psi)
       sz = inner(psi',Sz,psi)
       push!(energies, energy)
       push!(magz,sz)
       @printf("  Energy of METTS %d = %.4f\n", step - Nwarm, energy)
-      # a_E, err_E = avg_err(energies)
-      # @printf(
-      #   "  Estimated Energy = %.4f +- %.4f  [%.4f,%.4f]\n",
-      #   a_E,
-      #   err_E,
-      #   a_E - err_E,
-      #   a_E + err_E
-      # )
     end
 
     # Measure in X or Z basis on alternating steps
@@ -124,10 +117,11 @@ function main(; N=18, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1
 end
 
 data = []
-for i in [5]
-  eng,mag = main(b=i,NMETTS=100,δτ=.2, beta=2.0,)
+interval = -5:1:5
+for i in interval
+  eng,mag = main(b=i,NMETTS=100,δτ=0.2, beta=2.0,)
   push!(data,mean(mag))
   p = histogram(eng)
   # display(p)
 end
-
+plot(interval,data)
