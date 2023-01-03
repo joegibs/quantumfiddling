@@ -44,10 +44,10 @@ function entrp(psi,b)
     end
     return SvN
 end
-function ITensors.op(::OpName"expτSS", ::SiteType"S=1/2", s1::Index, s2::Index; τ,B)
+function ITensors.op(::OpName"expτSS", ::SiteType"S=1", s1::Index, s2::Index; τ,B)
   h =
-    1 / 2 * op("S+", s1) * op("S-", s2) +
-    1 / 2 * op("S-", s1) * op("S+", s2) +
+    op("Sx", s1) * op("Sx", s2) +
+    op("Sy", s1) * op("Sy", s2) +
     op("Sz", s1) * op("Sz", s2)+
     B*(op("Sz", s1) * op("I", s2)+op("I", s1) * op("Sz", s2))
     return exp(τ * h)
@@ -55,7 +55,7 @@ end
 
 function main(; N=36, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1)
   # Make an array of 'site' indices
-  s = siteinds("S=1/2", N)
+  s = siteinds("S=1", N)
 
   # Make gates (1,2),(2,3),(3,4),...
   gates = ops([("expτSS", (n, n + 1), (τ=-δτ / 2,B=b)) for n in 1:(N - 1)], s)
@@ -63,7 +63,7 @@ function main(; N=36, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1
   append!(gates, reverse(gates))
 
   # Make y-rotation gates to use in METTS collapses
-  Ry_gates = ops([("Ry", n, (θ=π / 2,)) for n in 1:N], s)
+#   Ry_gates = ops([("Sy",n) for n in 1:N], s)
 
   # Arbitrary initial state
   psi = randomMPS(s)
@@ -71,8 +71,8 @@ function main(; N=36, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1
   # Make H for measuring the energy
   terms = OpSum()
   for j in 1:(N - 1)
-    terms += 1 / 2, "S+", j, "S-", j + 1
-    terms += 1 / 2, "S-", j, "S+", j + 1
+    terms += "Sx", j, "Sx", j + 1
+    terms += "Sy", j, "Sy", j + 1
     terms += "Sz", j,"Sz", j+1
   end
   for j in 1:(N)
@@ -123,35 +123,48 @@ function main(; N=36, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1
 
     # Measure in X or Z basis on alternating steps
     if step % 2 == 1
-      psi = apply(Ry_gates, psi)
+    #   psi = apply(Ry_gates, psi)
       samp = sample!(psi)
-      new_state = [samp[j] == 1 ? "X+" : "X-" for j in 1:N]
+      new_state = []
+      for i in samp
+        if i == 1
+            push!(new_state,"X+")
+        elseif i == 2
+            push!(new_state,"X0")
+        else push!(new_state,"X-")
+        end
+      end
     else
       samp = sample!(psi)
-      new_state = [samp[j] == 1 ? "Z+" : "Z-" for j in 1:N]
+      new_state = []
+      for i in samp
+        if i == 1
+            push!(new_state,"Z+")
+        elseif i == 2
+            push!(new_state,"Z0")
+        else
+            push!(new_state,"Z-")
+        end
+      end
     end
     psi = productMPS(s, new_state)
   end
   return energies,magz,ents
 end
 
-data = []
-data_ent=[]
-interval = -2:0.2:2
+data1 = []
+data_ent1=[]
+interval = -2:0.5:2
 N=18
 for i in interval
   eng,mag,ent = main(N=N,b=i,NMETTS=100,δτ=.2, beta=2.0,)
-  push!(data,mean(mag)/N)
-  push!(data_ent,mean(ent))
+  push!(data1,mean(mag)/N)
+  push!(data_ent1,mean(ent))
   p = histogram(eng)
   # display(p)
 end
-plot(interval,[data,data_ent])
-data1=data
-plot(interval,[data,data1])
+plot(interval,[data1,data_ent1])
 
-# Need Cv = dE/dT loop over beta, get energy thn do some discrete drivatives... fun
-# data = []
 data_eng = []
 data_var = []
 interval =.1:0.1:3.1#10 .^ range(0, stop=1.5, length=40)
@@ -159,7 +172,7 @@ N=100
 for i in interval
   beta = i
   δτ=i/10
-  eng,mag,ent = main(N=N,b=0,NMETTS=1500,δτ=δτ, beta=beta)
+  eng,mag,ent = main(N=N,b=0,NMETTS=1000,δτ=δτ, beta=beta)
 #   push!(data,mean(mag)/N)
   push!(data_eng,mean(eng))
   push!(data_var,var(eng))
@@ -170,7 +183,7 @@ plot(interval,data_eng)
 plot(interval,data_var.*interval.*interval./N)
 ints,datas=finite_diff(interval,data_eng)
 plot(ints,datas)
-erv= [interval...][1:11]
+erv= [interval...][1:7]
 plot(erv,data_var.*erv.*erv./N)
 #need to do better point diferrentiation method.....
 #structure factor
