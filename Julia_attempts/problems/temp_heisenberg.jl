@@ -2,7 +2,10 @@ using ITensors
 using Printf
 using Plots
 using Statistics
-using FiniteDifferences
+using BenchmarkTools
+using LaTeXStrings
+
+BLAS.set_num_threads(8)
 #=
 
 This example code implements the minimally entangled typical thermal state (METTS).
@@ -53,7 +56,7 @@ function ITensors.op(::OpName"expτSS", ::SiteType"S=1/2", s1::Index, s2::Index;
     return exp(τ * h)
 end
 
-function main(; N=36, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1)
+function METTS(; N=36, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1)
   # Make an array of 'site' indices
   s = siteinds("S=1/2", N)
 
@@ -97,11 +100,11 @@ function main(; N=36, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1
   magz = Float64[]
   ents = Float64[]
   for step in 1:(Nwarm + NMETTS)
-    if step <= Nwarm
-      println("Making warmup METTS number $step")
-    else
-      println("Making METTS number $(step-Nwarm)")
-    end
+    # if step <= Nwarm
+    #   println("Making warmup METTS number $step")
+    # else
+    #   println("Making METTS number $(step-Nwarm)")
+    # end
 
     # Do the time evolution by applying the gates
     for τ in τ_range
@@ -135,43 +138,63 @@ function main(; N=36, cutoff=1E-8, δτ=0.1, beta=2.0, NMETTS=3000, Nwarm=10,b=1
   return energies,magz,ents
 end
 
-data = []
-data_ent=[]
-interval = -2:0.2:2
-N=18
-for i in interval
-  eng,mag,ent = main(N=N,b=i,NMETTS=100,δτ=.2, beta=2.0,)
-  push!(data,mean(mag)/N)
-  push!(data_ent,mean(ent))
-  p = histogram(eng)
-  # display(p)
+# data = []
+# data_ent=[]
+# interval = -2:0.2:2
+# N=18
+# for i in interval
+#   eng,mag,ent = main(N=N,b=i,NMETTS=100,δτ=.2, beta=2.0,)
+#   push!(data,mean(mag)/N)
+#   push!(data_ent,mean(ent))
+#   p = histogram(eng)
+#   # display(p)
+# end
+# plot(interval,[data,data_ent])
+# data1=data
+# plot(interval,[data,data1])
+function magnitization()
+  
+  steps = 9
+  interval = LinRange(-2,2,steps)
+  data1 = zeros(steps)
+  data_ent1 = zeros(steps)
+  N=18
+  for i in interval
+    step = 1
+    print("step: ",i,'\n')
+    eng,mag,ent = METTS(N=N,b=i,NMETTS=50,δτ=.2, beta=2.0,)
+    # eng,mag,ent = METTS(N=N,b=interval[i],NMETTS=100,δτ=.2, beta=2.0,)
+    data1[step] = mean(mag)/N
+    data_ent1[step] = mean(ent)
+    # p = histogram(eng)
+    # display(p)
+    step +=1
+  end
+  p= plot(interval,[data1,data_ent1])
+  display(p)
 end
-plot(interval,[data,data_ent])
-data1=data
-plot(interval,[data,data1])
-
 # Need Cv = dE/dT loop over beta, get energy thn do some discrete drivatives... fun
 # data = []
-data_eng = []
-data_var = []
-interval =.1:0.1:3.1#10 .^ range(0, stop=1.5, length=40)
-N=100
-for i in interval
-  beta = i
-  δτ=i/10
-  eng,mag,ent = main(N=N,b=0,NMETTS=1500,δτ=δτ, beta=beta)
-#   push!(data,mean(mag)/N)
-  push!(data_eng,mean(eng))
-  push!(data_var,var(eng))
-#   p = histogram(eng)
-#   display(p)
-end
-plot(interval,data_eng)
-plot(interval,data_var.*interval.*interval./N)
-ints,datas=finite_diff(interval,data_eng)
-plot(ints,datas)
-erv= [interval...][1:11]
-plot(erv,data_var.*erv.*erv./N)
+# data_eng = []
+# data_var = []
+# interval =.1:0.1:3.1#10 .^ range(0, stop=1.5, length=40)
+# N=100
+# for i in interval
+#   beta = i
+#   δτ=i/10
+#   eng,mag,ent = main(N=N,b=0,NMETTS=1500,δτ=δτ, beta=beta)
+# #   push!(data,mean(mag)/N)
+#   push!(data_eng,mean(eng))
+#   push!(data_var,var(eng))
+# #   p = histogram(eng)
+# #   display(p)
+# end
+# plot(interval,data_eng)
+# plot(interval,data_var.*interval.*interval./N)
+# ints,datas=finite_diff(interval,data_eng)
+# plot(ints,datas)
+# erv= [interval...][1:11]
+# plot(erv,data_var.*erv.*erv./N)
 #need to do better point diferrentiation method.....
 #structure factor
 
@@ -186,3 +209,31 @@ plot(erv,data_var.*erv.*erv./N)
 
 # bisected system entropy scaling
 #site-site scaling
+function main()
+  steps = 5
+  # data_eng = [Float64[] for _ in 1:Threads.nthreads()]
+  # data_var = [Float64[] for _ in 1:Threads.nthreads()]
+  data_eng = []
+  data_var = []#[zeros(Int(round(steps/Threads.nthreads()))) for _ in 1:Threads.nthreads()]
+  interval =LinRange(0.1,3.1,steps)
+  N=18
+
+  for i in 1:steps
+    print("Step: ",i,'\n')
+    beta = interval[i]
+    δτ=interval[i]/10
+    eng,mag,ent = METTS(N=N,b=0,NMETTS=10,δτ=δτ, beta=beta)
+    push!(data_eng,mean(eng))
+    push!(data_var,var(eng))
+    # push!(data_var[Threads.threadid()],var(eng))
+  #   p = histogram(eng)
+  #   display(p)
+  end
+
+  # plot(interval,reduce(vcat, data_eng),title=string("Average internal energy", ", ", N, " Spin 1 sites"), legend=false, linewidth=3)
+  p = plot(interval,reduce(vcat, data_var).*interval.*interval./N, title=string("Specific Heat", ", ", N, " Spin-1/2 sites"), legend=false, linewidth=3,xlabel = "β", ylabel = L"$\textbf{C_v}\textbf{k}$")
+
+  display(p)
+end 
+
+main()

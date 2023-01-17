@@ -17,7 +17,7 @@ sites = siteinds("Fermion", N)
 psi0 = randomMPS(sites)
 for i in 1:N-1
     l = getfirst(x->hastags(x,"Link,l=$(i)"),inds(psi0[i]))
-    p Int(dim(l),'\n')
+    print(Int(dim(l)),'\n')
 end
 os = OpSum()
 #impurity terms
@@ -37,7 +37,7 @@ cutoff = [1E-11]
 energy, psi = dmrg(H, psi0; nsweeps, maxdim, cutoff)
 for i in 1:N-1
     l = getfirst(x->hastags(x,"Link,l=$(i)"),inds(psi[i]))
-    p Int(dim(l),'\n')
+    print(Int(dim(l)),'\n')
 end
 
 #%%%%%%%%%%%%%%%%%%%%%%%
@@ -48,7 +48,7 @@ sites = siteinds("Electron", N)
 psi0 = randomMPS(sites)
 for i in 1:N-1
     l = getfirst(x->hastags(x,"Link,l=$(i)"),inds(psi0[i]))
-    p Int(dim(l),'\n')
+    print(Int(dim(l)),'\n')
 end
 
 ϵ = 1
@@ -105,7 +105,7 @@ sites = siteinds("Fermion", N)
 psi0 = randomMPS(sites)
 for i in 1:N-1
     l = getfirst(x->hastags(x,"Link,l=$(i)"),inds(psi0[i]))
-    p Int(dim(l),'\n')
+    print(Int(dim(l),'\n'))
 end
 
 ϵ = 1
