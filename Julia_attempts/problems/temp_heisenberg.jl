@@ -5,7 +5,7 @@ using Statistics
 using BenchmarkTools
 using LaTeXStrings
 
-BLAS.set_num_threads(8)
+BLAS.set_num_threads(1)
 #=
 
 This example code implements the minimally entangled typical thermal state (METTS).

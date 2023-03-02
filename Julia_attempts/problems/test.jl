@@ -175,3 +175,62 @@ magz = -inner(rho,SzH)/N
 rho = apply(gates, rho; cutoff)
 rho = rho / tr(rho)
 end
+
+
+
+function entangle_cluster_sites(psi,sites,s1::Int,s2::Int)
+    """
+    bleh this is not right
+    
+    psi: state
+    s1: start of cluster
+    s2: end of cluster
+    """
+        H_gates = ops([isodd(n) ? ("H",n) : ("I",n) for n in s1:s2],sites)
+        CNOT_gates = ops([("CNOT",(n,n+1)) for n in s1:2:s2],sites)
+        psi = apply(H_gates,psi)
+        psi = apply(CNOT_gates,psi)
+        return psi
+    end
+    
+    function imag_time_gates(sites,s1::Int,s2::Int,N::Int)
+        s = [1:s1-1;s1:2:s2-1;s2+1:N-1]
+        gates = ops([("expτSS", (n, n + 1), (τ=-δτ / 2,)) for n in s], sites)
+        return gates
+    end 
+    function return_state(psi,sites)
+        return [psi[j]*state(sites[j],1) for j in 1:length(sites)]
+    end
+    N=10
+    s1=4
+    s2=7
+    cutoff=1E-8
+    δτ=0.1
+    beta=2.0
+    NMETTS=300
+    Nwarm=10
+    # Make an array of 'site' indices
+    s = siteinds("S=1/2", N)
+
+    # Arbitrary initial state
+    psi = randomMPS(s)
+    psi = entangle_cluster_sites(psi,s,s1,s2)
+    # Make H for measuring the energy
+    terms = OpSum()
+    for j in s1:s2
+      terms += 1 / 2, "S+", j, "S-", j + 1
+      terms += 1 / 2, "S-", j, "S+", j + 1
+      terms += "Sz", j, "Sz", j + 1
+    end
+    H = MPO(terms, s)
+    
+    samp = sample!(psi)
+    new_state = [samp[j] == 1 ? "Z+" : "Z-" for j in 1:N]
+  
+    psi = productMPS(s, new_state)
+    psi = entangle_cluster_sites(psi,s,s1,s2)
+      # Measure in X or Z basis 
+    
+    # return nothing
+    #   end
+    

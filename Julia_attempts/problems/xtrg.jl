@@ -1,17 +1,6 @@
 using ITensors
 using Printf
 
-#=
-
-This example code implements the purification or "ancilla" method for 
-finite temperature quantum systems.
-
-For more information see the following references:
-- "Finite-temperature density matrix renormalization using an enlarged Hilbert space",
-  Adrian E. Feiguin and Steven R. White, Phys. Rev. B 72, 220401(R)
-  and arxiv:cond-mat/0510124 (https://arxiv.org/abs/cond-mat/0510124)
-
-=#
 
 function ITensors.op(::OpName"expτSS", ::SiteType"S=1/2", s1::Index, s2::Index; τ)
   h =

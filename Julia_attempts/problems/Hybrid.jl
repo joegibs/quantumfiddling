@@ -31,6 +31,8 @@ function ITensors.op(::OpName"expτSS", ::SiteType"S=1/2", s1::Index, s2::Index;
 
 function entangle_cluster_sites(psi,sites,s1::Int,s2::Int)
 """
+bleh this is not right
+
 psi: state
 s1: start of cluster
 s2: end of cluster
@@ -49,8 +51,8 @@ function imag_time_gates(sites,s1::Int,s2::Int,N::Int)
 end 
 
 N=50
-s1=10
-s2=40
+s1=2
+s2=48
 cutoff=1E-8
 δτ=0.1
 beta=2.0
@@ -71,7 +73,7 @@ psi = randomMPS(s)
 psi = entangle_cluster_sites(psi,s,s1,s2)
 # Make H for measuring the energy
 terms = OpSum()
-for j in s1:2:s2
+for j in 1:(N-1)#[1:s1-1;s1:2:s2-1;s2+1:N-1]
   terms += 1 / 2, "S+", j, "S-", j + 1
   terms += 1 / 2, "S-", j, "S+", j + 1
   terms += "Sz", j, "Sz", j + 1
