@@ -1,1 +1,1 @@
-print("butts\n")
+print("butts")
