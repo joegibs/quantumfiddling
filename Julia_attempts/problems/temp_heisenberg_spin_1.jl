@@ -174,19 +174,19 @@ function magnitization()
 end
 # magnitization()
 function main()
-  steps = 21
+  steps = 11
   # data_eng = [Float64[] for _ in 1:Threads.nthreads()]
   # data_var = [Float64[] for _ in 1:Threads.nthreads()]
   data_eng = []
   data_var = []#[zeros(Int(round(steps/Threads.nthreads()))) for _ in 1:Threads.nthreads()]
   interval =LinRange(0.1,3.1,steps)
-  N=100
+  N=20
 
   for i in 1:steps
     print("Step: ",i,'\n')
     beta = interval[i]
     δτ=interval[i]/10
-    eng,mag,ent = METTS(N=N,b=0,NMETTS=4000,δτ=δτ, beta=beta)
+    eng,mag,ent = METTS(N=N,b=0,NMETTS=400,δτ=δτ, beta=beta)
     push!(data_eng,mean(eng))
     push!(data_var,var(eng))
     # push!(data_var[Threads.threadid()],var(eng))

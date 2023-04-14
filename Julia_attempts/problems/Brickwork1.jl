@@ -4,6 +4,8 @@ using Plots
 using Statistics
 using LaTeXStrings
 using LinearAlgebra
+using PyCall
+
 
 function RandomUnitaryMatrix(N::Int)
     x = (rand(N,N) + rand(N,N)*im) / sqrt(2)
@@ -17,16 +19,11 @@ function RandomUnitaryMatrix(N::Int)
 end
 function IXgate(N::Int)
     theta = rand()*2*pi
-    eps=0.25#rand()
+    eps=0.5#rand()
     u =exp(1im*theta).*(sqrt((1-eps)).*Matrix(I,4,4) + 1im.*sqrt(eps).*[[0,0,0,1] [0,0,1,0] [0,1,0,0] [1,0,0,0]])
     return u
 end
-function Ihaargate(N::Int)
-    theta = rand()*2*pi
-    eps=0.9#rand()
-    u =(sqrt((1-eps)).*Matrix(I,4,4) + 1im.*sqrt(eps).*RandomUnitaryMatrix(4))
-    return u
-end
+
 function make_row(N,eoo,pc)
     if eoo
         lst =[[i,i+1] for i in 1:2:N-1]
@@ -41,20 +38,8 @@ function make_row(N,eoo,pc)
     return lst
 end
 
-function apply_gate(psi,G,sites)
-    a,b=sites[1],sites[2]
-    orthogonalize!(psi,a)
-    wf = (psi[a] * psi[b]) * G
-    noprime!(wf)
-    inds3 = uniqueinds(psi[a],psi[b])
-    U,S,V = svd(wf,inds3,cutoff=1E-8)
-    psi[a] = U
-    psi[b] = S*V
-    return psi
-end
 
-function rec_ent(psi,b)
-    s = siteinds(psi)  
+function rec_ent(psi,b,s)  
     orthogonalize!(psi, b)
     _,S = svd(psi[b], (linkind(psi, b-1), s[b]))
     SvN = 0.0
@@ -66,6 +51,28 @@ function rec_ent(psi,b)
     end
     return SvN
 end
+
+function split_ren(psi,b)
+    rho=outer(psi',psi)
+    n = length(rho)
+    rho_temp = deepcopy(rho)
+    s = siteinds("Qubit",n) 
+  
+    #contract half   x x x x | | | |
+    L = ITensor(1.0)
+    for i = 1:b
+      L *= tr(rho_temp[i])
+    end
+    # absorb
+    rho_temp[b+1] *= L
+    # no longer a proper mpo
+    M =MPO(n-b)
+    for i in 1:(n-b)
+        M[i]=rho_temp[b+i]
+    end
+    ren = -log2(tr(apply(M,M)))
+    return ren
+  end
 
 function entropy_subsys(psi,inds)
     i = inds[1];
@@ -179,14 +186,6 @@ ITensors.op(::OpName"Ihaar",::SiteType"Qubit") =
 ITensors.op(::OpName"Iden",::SiteType"Qubit") = 
 [1 0
 0 1]
-function ITensors.op(::OpName"expτSS", ::SiteType"Qubit", s1::Index, s2::Index; τ,B)
-    h = op("Iden",s1)*op("Iden",s2)
-        # 1 / 2 * op("S+", s1) * op("S-", s2) +
-        # 1 / 2 * op("S-", s1) * op("S+", s2) +
-        # op("Sz", s1) * op("Sz", s2)+
-        # B*(op("Sz", s1) * op("I", s2)+op("I", s1) * op("Sz", s2))
-        return exp(τ * h)
-    end
 function gen_samp_row(N,meas_p)
     return [rand()<meas_p ? 1 : 0 for i in 1:N]
 end
@@ -201,70 +200,6 @@ function samp_mps(psi,s,site)
     G = ITensor[op(proj,s[site])]
     psi = apply(G, psi; cutoff)
     normalize!(psi)
-    return psi
-end
-
-
-function metts(psi,sites)
-    δτ=1.
-    beta=2.
-    NMETTS=1
-    Nwarm=0
-    b=0
-    s = sites
-    # Make gates (1,2),(2,3),(3,4),...
-    gates = ops([("expτSS", (n, n + 1), (τ=-δτ / 2,B=b)) for n in 1:(N - 1)], s)
-    # Include gates in reverse order to complete Trotter formula
-    append!(gates, reverse(gates))
-
-    # Make y-rotation gates to use in METTS collapses
-    Ry_gates = ops([("Ry", n, (θ=π / 2,)) for n in 1:N], s)
-
-
-    # Make τ_range and check δτ is commensurate
-    τ_range = δτ:δτ:(beta / 2)
-    if norm(length(τ_range) * δτ - beta / 2) > 1E-10
-        error("Time step δτ=$δτ not commensurate with beta/2=$(beta/2)")
-    end
-
-    for step in 1:(Nwarm + NMETTS)
-        # if step <= Nwarm
-        #   println("Making warmup METTS number $step")
-        # else
-        #   println("Making METTS number $(step-Nwarm)")
-        # end
-
-        # Do the time evolution by applying the gates
-        for τ in τ_range
-        cutoff = 1E-8
-        psi = apply(gates, psi; cutoff)
-        normalize!(psi)
-        end
-
-        # Measure properties after >= Nwarm 
-        # METTS have been made
-        # if step > Nwarm
-        #   energy = inner(psi', H, psi)
-        #   sz = inner(psi',Sz,psi)
-        #   ent = entrp(psi,Int(N/2))
-        #   push!(energies, energy)
-        #   push!(magz,sz)
-        #   push!(ents,ent)
-        #   @printf("  Energy of METTS %d = %.4f\n", step - Nwarm, energy)
-        # end
-
-        # Measure in X or Z basis on alternating steps
-        # if step % 2 == 1
-        # psi = apply(Ry_gates, psi)
-        # samp = sample!(psi)
-        # new_state = [samp[j] == 1 ? "X+" : "X-" for j in 1:N]
-        # else
-        # samp = sample!(psi)
-        # new_state = [samp[j] == 1 ? "Z+" : "Z-" for j in 1:N]
-        # end
-        # psi = productMPS(s, new_state)
-    end
-
     return psi
 end
 
@@ -283,7 +218,7 @@ function gen_step(N,psi,s,step_num,meas_p)
 
     psi = apply(gates, psi; cutoff)
     #calculate obs
-    measured_vals = rec_ent(psi,Int(round(N/2)))
+    measured_vals = rec_ent(psi,Int(round(N/2)),s)
     
     #metts shenanagins
     # psi = metts(psi,s)
@@ -328,26 +263,85 @@ function do_trials(N,steps,meas_p,trials)
 end
 
 decays=[]
-# for n in [8,10]
-N = 8
+sits = [4,6,8]
+interval = 0.0:0.05:0.6
+for n in sits#[6,8,10]
+N = n
 # cutoff = 1E-8
-steps = 2*N
+steps = 4*N
 meas_p=0.
 svns=[]
 mut = []
-    for i in [0,0.1,0.4]#0.0:0.4:1
+    for i in interval
         print("\n meas_p $i \n")
-        svn,tri_mut =do_trials(N,steps,i,10)
+        svn,tri_mut =do_trials(N,steps,i,50)
         avgsvn = [(svn[x]+svn[x+1])/2 for x in 1:2:(size(svn)[1]-1)]
         append!(svns,[avgsvn])
         append!(mut,tri_mut)
     end
 decay = [svns[i][end] for i in 1:size(svns)[1]]
 append!(decays,[decay])
-# end
+end
 
-N=10
-p = plot(svns,title=string("Gate Rand", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([0.00:0.3:1...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-# p = plot([0.1:0.2:1...],decays,title=string("Bip_ent Gat: IX0.9", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([6:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-# m = plot(real(mut))
-display(p)
+
+p = plot(real(svns),title=string("Gate Rand", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([interval...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+p = plot([0.0:0.2:0.8...],decays,title=string("Bip_ent Gat: IX0.", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([6:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+# # m = plot(real(mut))
+# display(p)
+
+
+py"""
+import numpy as np
+import scipy
+L=$sits
+interval = $interval#[x/10 for x in range(9)]
+tot_vonq = $decays
+def xfunc(p,l,pc,v):
+    return (p-pc)*l**(1/v)
+
+def Spc(pc,l):
+    spot, = np.where(np.array(L)==l)
+    return np.interp(pc,interval,tot_vonq[spot[0]])
+
+def yfunc(p,l,pc):
+    spot, = np.where(np.array(L)==l)
+
+    a=np.interp(p,interval,tot_vonq[spot[0]])
+    b = Spc(pc,l)
+    return  a-b 
+
+def mean_yfunc(p,pc):
+    return np.mean([yfunc(p,l,pc) for l in L])
+    from scipy.optimize import minimize
+
+def R(params):
+    pc,v = params
+    #sum over all the square differences
+    x_vals = [[xfunc(p,l,pc,v) for p in interval] for l in L]
+    y_vals = [[yfunc(p,l,pc) for p in interval] for l in L]
+
+    min_x = np.max([x[0] for x in x_vals]) #max for smallest value st all overlap
+    max_x = np.min([x[-1] for x in x_vals]) # min again to take overlap
+    xi = np.linspace(min_x,max_x)
+    mean_x_vals = np.mean(x_vals,axis=0)
+    mean_y_vals = [mean_yfunc(p,pc) for p in interval]
+    
+    def mean_y(x):
+        return np.interp(x,mean_x_vals,mean_y_vals)
+    
+    return np.sum([[(np.interp(x,x_vals[i],y_vals[i]) - mean_y(x))**2 for x in xi] for i in range(len(L))]) 
+initial_guess = [0.0,0.1]
+res = scipy.optimize.minimize(R, initial_guess)
+    
+"""
+
+
+ppc,vv=py"res.x"
+
+py"""
+ppc,vv=res.x
+x_vals = [[xfunc(p,l,ppc,vv) for p in interval] for l in L]
+y_vals = [[yfunc(p,l,ppc) for p in interval] for l in L]
+# mean_y_vals = [mean_yfunc(p,0.26) for p in interval]
+"""
+plot(transpose(py"x_vals"),transpose(py"y_vals"),linewidth=3)

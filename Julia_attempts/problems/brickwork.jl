@@ -6,7 +6,19 @@ N = 4
 # sites = siteinds(2,N)
 s = siteinds("Qubit", N)
 
-psi = MPS(sites,linkdims=2)
+psi = MPS(s,linkdims=2)
+
+k=9
+n = 10
+s = siteinds("Qubit",n)
+rho = randomMPS(s)
+for i = 1:k  #k is the site I stopped. or i = m:length(rho)
+rho[i] = rho[i]*delta(s[i],s[i]')
+end
+m =MPS(n-k)
+for i=1:(n-k)
+m[i] = rho[k+i]
+end
 
 #make a row
 function make_row(N,eoo,pc)
@@ -360,3 +372,46 @@ function metts(psi,sites)
 
 return psi
 end
+#####
+
+N=5
+s = siteinds("Qubit", N+1) #+1 for ancilla
+psi = productMPS(s, "Up" )
+
+step_num=1
+row = make_row(N,Bool(step_num%2),false)
+gates = ITensor[]
+for j in row
+    s1 = s[j[1]]
+    s2 = s[j[2]]
+    hj = op("Rand",[s1,s2])
+    Gj=hj
+    push!(gates, Gj)
+end
+# cutoff = 1E-8
+
+psi = apply(gates, psi)
+
+gates = ITensor[]
+hj = op("expSWAP", [s[N],s[N+1]])
+Gj=hj
+push!(gates,Gj)
+psi = apply(gates,psi)
+
+rec_ent(psi,Int(round(N/2)))
+
+
+############
+
+n = 10
+s = siteinds("Qubit",n)
+A = randomMPO(s)
+A_trace = tr(A)
+
+n = 10
+s = siteinds("Qubit",n)
+A = randomMPO(s)
+for i = 1:n
+       A[i]= A[i]*delta(s[i],s[i]')
+end
+contract(A).tensor

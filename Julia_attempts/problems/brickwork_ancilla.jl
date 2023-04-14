@@ -1,3 +1,8 @@
+#This is bad need to rework with mpos
+
+
+
+
 using ITensors
 using Random
 using Plots
@@ -50,11 +55,12 @@ function apply_gate(psi,G,sites)
 end
 
 function trace_out_anc(psi)
-    s = siteinds("Qubit",length(psi))
+    d=length(psi)
+    s = siteinds("Qubit",d)
 
-    for i = length(psi)-1:length(psi)  #k is the site I stopped. or i = m:length(rho)
-        psi[i] = psi[i]*delta(s[i],s[i]')
-    end
+    # for i = length(psi)-1:length(psi)  #k is the site I stopped. or i = m:length(rho)
+    psi[d] = psi[d]*delta(s[d],s[d]')
+    # end
     m =MPS(length(psi)-1)
     for i=1:length(psi)-1
         m[i] = psi[i]
@@ -65,7 +71,7 @@ end
 function rec_ent(psi,b)
     psi_temp = deepcopy(psi)#trace_out_anc(psi)
     psi_temp = trace_out_anc(psi_temp)
-    s = siteinds(psi)  
+    s = siteinds(psi)
     orthogonalize!(psi_temp, b)
     _,S = svd(psi_temp[b], (linkind(psi_temp, b-1), s[b]))
     SvN = 0.0
@@ -211,7 +217,7 @@ steps = 2*N
 meas_p=0.
 svns=[]
 mut = []
-for i in [0 0.1 0.3]#0.0:0.4:1
+for i in [0 0.1 0.3 0.8 1]#0.0:0.4:1
     print("\n meas_p $i \n")
     svn,tri_mut =do_trials(N,steps,i,50)
     avgsvn = [(svn[x]+svn[x+1])/2 for x in 1:2:(size(svn)[1]-1)]
@@ -223,7 +229,7 @@ end
 # end
 
 # N=10
-p = plot(svns,title=string("Gate Rand", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([0.00:0.4:1...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+p = plot(svns,title=string("Gate Rand", ", ", N, " qubit sites, varying meas_p"), label=string.([0 0.1 0.3 0.8 1]), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
 # p = plot([0.1:0.2:1...],decays,title=string("Bip_ent Gat: IX0.9", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([6:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
 # m = plot(real(mut))
 display(p)

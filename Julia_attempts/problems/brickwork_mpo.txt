@@ -1,0 +1,15 @@
+function rec_ent(psi,b)
+    psi_temp = deepcopy(psi)#trace_out_anc(psi)
+    psi_temp = trace_out_anc(psi_temp)
+    s = siteinds(psi)  
+    orthogonalize!(psi_temp, b)
+    _,S = svd(psi_temp[b], (linkind(psi_temp, b-1), s[b]))
+    SvN = 0.0
+    for n in 1:dim(S, 1)
+      p = S[n,n]^2
+      if p != 0
+        SvN -= p * log(p)
+      end
+    end
+    return SvN
+end

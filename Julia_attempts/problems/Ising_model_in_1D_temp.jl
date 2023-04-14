@@ -11,7 +11,7 @@ function ITensors.op(::OpName"expτSS", ::SiteType"S=1/2", s1::Index, s2::Index;
   return exp(τ * h)
 end
 
-N=100
+N=20
 cutoff=1E-8
 δτ=0.05 
 beta_max=0
@@ -19,7 +19,7 @@ beta_max=0
 s = siteinds("S=1/2", N)
 B = 2.5
 J=0
-n=100
+n=10
 iter = -B:2*B/n:B
 mg_vec = zeros(n+1)
 for (i,B) in enumerate(iter)
