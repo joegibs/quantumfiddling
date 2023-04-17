@@ -342,23 +342,21 @@ ITensors.op(::OpName"Pdn",::SiteType"Qubit") =
 function samp_mps(rho,s,samp_row)
   cutoff = 1E-8
   N = length(rho)
-  # samp =deepcopy(rho)
-  # samp = samp/tr(samp)
-  # samples= sample_mpo(samp)
-  samples=[1 1 1 1 1 1 1 1]
+  samp =deepcopy(rho)
+  samp = samp/tr(samp)
+  samples= sample(samp)
   magz = [x == 1 ? "Pup" : "Pdn" for x in samples]
 
-  ampo = OpSum()
+  gates = ITensor[]
+
   for i in 1:N
     if Bool(samp_row[i])
-        ampo += magz[i],i
+        hj = op(magz[i],s[i])
+        push!(gates, hj)
     end
   end
-  # @show ampo
-  if length(ampo)!=0
-    H = MPO(ampo,s)
-    rho = apply(H, rho;apply_dag=true)
-  end
+  rho = apply(gates, rho;apply_dag=true)
+ 
   normalize!(rho)
   return rho
 end
@@ -371,7 +369,9 @@ gates = ITensor[]
 
 s1 = s[2]
 s2 = s[3]
-hj = op("RandomUnitary",[s1,s2])
+hj = op("H",s1)
+push!(gates, hj)
+hj = op("CNOT",[s1,s2])
 push!(gates, hj)
 
 cutoff = 1E-8
@@ -380,4 +380,6 @@ rho = apply(gates, rho; apply_dag=true)
 psi = apply(gates,psi1)
 # rho = apply(rho, rho; cutoff)
 
-rec_ent(rho,2)
+rec_ent(rho,2,s)
+rho2 = samp_mps(rho,s,[1,0,1,1])
+rec_ent(rho2,2,s)
