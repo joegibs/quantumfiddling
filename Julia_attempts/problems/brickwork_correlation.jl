@@ -218,7 +218,7 @@ function gen_step(N,psi,s,step_num,meas_p)
 
     psi = apply(gates, psi; cutoff)
     #calculate obs
-    measured_vals = rec_ent(psi,Int(round(N/2)),s)
+    # measured_vals = rec_ent(psi,Int(round(N/2)),s)
     
     #metts shenanagins
     # psi = metts(psi,s)
@@ -229,7 +229,7 @@ function gen_step(N,psi,s,step_num,meas_p)
             psi = samp_mps(psi,s,i)
         end
     end
-    return psi,measured_vals
+    return psi#,measured_vals
 end
 
 function do_exp(N,steps,meas_p)
@@ -238,8 +238,14 @@ function do_exp(N,steps,meas_p)
 
     svn =[]
     for i in 1:steps
-        psi ,meas_svn= gen_step(N,psi,s,i,meas_p)
-        append!(svn,meas_svn)
+        psi = gen_step(N,psi,s,i,meas_p)
+        
+        # append!(svn,meas_svn)
+    end
+    Czz = correlation_matrix(psi,"Sz","Sz")
+    vals = []
+    for n in 1:N
+        append!(vals,Czz[1,n])
     end
     #tri_mut = tri_part_MI(psi,[1,2],[3,4],[5,6])
     tri_mut = []
@@ -247,24 +253,24 @@ function do_exp(N,steps,meas_p)
     #     arr = two_point_MI(psi,2,i)
     #     append!(tri_mut,arr)
     # end
-    return svn,tri_mut
+    return vals
 end
 function do_trials(N,steps,meas_p,trials)
-    svn_trials,tri_trials = do_exp(N,steps,meas_p)
+    vals_trials = do_exp(N,steps,meas_p)
     for i in 2:trials
         print(i)
-        nSvn,ntm = do_exp(N,steps,meas_p)
-        svn_trials = 2*mean([(i-1)/i*svn_trials,1/i*nSvn])
-        tri_trials = 2*mean([(i-1)/i*tri_trials,1/i*ntm])
+        vals = do_exp(N,steps,meas_p)
+        vals_trials = 2*mean([(i-1)/i*vals_trials,1/i*vals])
+        # tri_trials = 2*mean([(i-1)/i*tri_trials,1/i*ntm])
 
         
     end
-    return svn_trials,tri_trials
+    return vals_trials
 end
 
 decays=[]
-sits = [6,8,10]
-interval = 0.0:0.05:1
+sits = [6]
+interval = 0.0:0.1:1
 for n in sits#[6,8,10]
 N = n
 # cutoff = 1E-8
@@ -274,13 +280,13 @@ svns=[]
 mut = []
     for i in interval
         print("\n meas_p $i \n")
-        svn,tri_mut =do_trials(N,steps,i,50)
-        avgsvn = [(svn[x]+svn[x+1])/2 for x in 1:2:(size(svn)[1]-1)]
-        append!(svns,[avgsvn])
-        append!(mut,tri_mut)
+        vals =do_trials(N,steps,i,50)
+        # avgsvn = [(svn[x]+svn[x+1])/2 for x in 1:2:(size(svn)[1]-1)]
+        append!(svns,[vals])
+        # append!(mut,tri_mut)
     end
-decay = [svns[i][end] for i in 1:size(svns)[1]]
-append!(decays,[decay])
+# decay = [svns[i][end] for i in 1:size(svns)[1]]
+# append!(decays,[decay])
 end
 
 

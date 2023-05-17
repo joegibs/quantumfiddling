@@ -383,3 +383,55 @@ psi = apply(gates,psi1)
 rec_ent(rho,2,s)
 rho2 = samp_mps(rho,s,[1,0,1,1])
 rec_ent(rho2,2,s)
+
+
+function ITensors.op(::OpName"Rz2", ::SiteType"Qubit"; θ=nothing, ϕ=nothing)
+  isone(count(isnothing, (θ, ϕ))) || error(
+    "Must specify the keyword argument `θ` (or the deprecated `ϕ`) when creating an Rz gate, but not both.",
+  )
+  isnothing(θ) && (θ = ϕ)
+  return [
+    exp(-im * θ / 2) 0
+    0 exp(im * θ / 2)
+  ]
+end
+function kraus_dephase(rho,s,p)
+  #define the two operators
+  #(1-p)ρ + pZρZ
+  rho2= copy(rho)
+  N=length(rho)
+  gates = ITensor[]
+  for i in 1:N
+    hj = op("Z", s[i])
+    push!(gates, hj)
+  end
+  #apply the operators
+  rho = (1-p)*rho + p*apply(gates,rho;apply_dag=true)
+  #sum the results
+  # tot = (1-p)*rho +p*(rho2)
+  return rho
+end
+N = 4
+sites = siteinds("Qubit",N)
+psi1 = productMPS(sites, "Up" )
+rho = outer(psi1',psi1)
+
+gates = ITensor[]
+  for i in 1:length(s)
+    hj = op("Z",s[i])
+    push!(gates, hj)
+    end
+
+rho2 = apply(gates,rho;apply_dag=true)
+  #sum the results
+
+rho2= kraus_dephase(rho,sites,0.5)
+
+
+
+s1 = sites[2]
+
+p1 = op("Rz2",s1,θ=2)
+gates = ITensor[]
+push!(gates, p1)
+

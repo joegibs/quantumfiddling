@@ -7,6 +7,20 @@ using Statistics
 using LaTeXStrings
 using LinearAlgebra
 
+function kraus_dephase(rho,s,p)
+    #define the two operators
+    #(1-p)ρ + pZρZ
+    N=length(rho)
+    gates = ITensor[]
+    for i in 1:N
+      hj = op("Z", s[i])
+      push!(gates, hj)
+    end
+    #apply the operators
+    rho = (1-p)*rho + p*apply(gates,rho;apply_dag=true)
+    return rho
+  end
+
 function rec_ent(rho,b,s)
   n = length(rho)
   # orthogonalize!(rho,b)
@@ -39,19 +53,7 @@ function rec_ent(rho,b,s)
     end
     return SvN
   end
-# function rec_ent(psi,b)
-#   s = siteinds(psi)  
-#   orthogonalize!(psi, b)
-#   _,S = svd(psi[b], (linkind(psi, b-1), s[b]))
-#   SvN = 0.0
-#   for n in 1:dim(S, 1)
-#     p = S[n,n]^2
-#     if p != 0
-#       SvN -= p * log(p)
-#     end
-#   end
-#   return SvN
-# end
+
 
 function ren(rho)
   return -log(tr(apply(rho,rho)))
@@ -178,7 +180,9 @@ function gen_step(N,rho,s,step_num,meas_p)
   #sample as needed
   samp_row=gen_samp_row(N,meas_p)
   rho = samp_mps(rho,s,samp_row)
-
+  
+  #kraus_dephase
+  rho = kraus_dephase(rho,s,0.15)
   return rho,measured_vals
 end
 
@@ -215,30 +219,85 @@ function do_trials(N,steps,meas_p,trials)
 end
 
 decays=[]
-# for n in [8,10]
-N = 6
+for n in [4,6,8]
+# N = 6
 # cutoff = 1E-8
-steps = 4*N
+steps = 4*n
 meas_p=0.
 svns=[]
 mut = []
-for i in [0.0:0.2:1...]
+for i in [0.05:0.05:1...]
     print("\n meas_p $i \n")
-    svn,tri_mut =do_trials(N,steps,i,100)
+    svn,tri_mut =do_trials(n,steps,i,100)
     avgsvn = [(svn[x]+svn[x+1])/2 for x in 1:2:(size(svn)[1]-1)]
     append!(svns,[avgsvn])
     append!(mut,tri_mut)
 end
 decay = [svns[i][end] for i in 1:size(svns)[1]]
 append!(decays,[decay])
-# end
+end
 p = plot(svns,title=string("MPO Gate Rand", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([0.0:0.2:1...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-p = plot([0.0:0.2:1...],decays,title=string("Bip_ent Gat: IX0.9", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([6:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+p = plot([0.05:0.05:1...],decays[end-2:end],title=string("Bip_ent Gat: 2Haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
 # m = plot(real(mut))
 display(p)
 
+sits = [4,6,8]
+interval = [0.05:0.05:1...]
+py"""
+import numpy as np
+import scipy
+L=$sits
+interval = $interval#[x/10 for x in range(9)]
+tot_vonq = $decays
+def xfunc(p,l,pc,v):
+    return (p-pc)*l**(1/v)
+
+def Spc(pc,l):
+    spot, = np.where(np.array(L)==l)
+    return np.interp(pc,interval,tot_vonq[spot[0]])
+
+def yfunc(p,l,pc):
+    spot, = np.where(np.array(L)==l)
+
+    a=np.interp(p,interval,tot_vonq[spot[0]])
+    b = Spc(pc,l)
+    return  a-b 
+
+def mean_yfunc(p,pc):
+    return np.mean([yfunc(p,l,pc) for l in L])
+    from scipy.optimize import minimize
+
+def R(params):
+    pc,v = params
+    #sum over all the square differences
+    x_vals = [[xfunc(p,l,pc,v) for p in interval] for l in L]
+    y_vals = [[yfunc(p,l,pc) for p in interval] for l in L]
+
+    min_x = np.max([x[0] for x in x_vals]) #max for smallest value st all overlap
+    max_x = np.min([x[-1] for x in x_vals]) # min again to take overlap
+    xi = np.linspace(min_x,max_x)
+    mean_x_vals = np.mean(x_vals,axis=0)
+    mean_y_vals = [mean_yfunc(p,pc) for p in interval]
+    
+    def mean_y(x):
+        return np.interp(x,mean_x_vals,mean_y_vals)
+    
+    return np.sum([[(np.interp(x,x_vals[i],y_vals[i]) - mean_y(x))**2 for x in xi] for i in range(len(L))]) 
+initial_guess = [0.0,0.1]
+res = scipy.optimize.minimize(R, initial_guess)
+    
+"""
 
 
+ppc,vv=py"res.x"
+
+py"""
+ppc,vv=res.x
+x_vals = [[xfunc(p,l,ppc,vv) for p in interval] for l in L]
+y_vals = [[yfunc(p,l,ppc) for p in interval] for l in L]
+# mean_y_vals = [mean_yfunc(p,0.26) for p in interval]
+"""
+plot(transpose(py"x_vals"),transpose(py"y_vals"),linewidth=3)
 
 
 # N=4
