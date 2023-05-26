@@ -6,6 +6,8 @@ using Plots
 using Statistics
 using LaTeXStrings
 using LinearAlgebra
+using PyCall
+
 
 function kraus_dephase(rho,s,p)
     #define the two operators
@@ -133,6 +135,7 @@ ITensors.op(::OpName"Iden2",::SiteType"Qubit") =
   0 0 0 1]
 
 
+
 function gen_samp_row(N,meas_p)
   return [rand()<meas_p ? 1 : 0 for i in 1:N]
 end
@@ -228,7 +231,7 @@ svns=[]
 mut = []
 for i in [0.05:0.05:1...]
     print("\n meas_p $i \n")
-    svn,tri_mut =do_trials(n,steps,i,100)
+    svn,tri_mut =do_trials(n,steps,i,10)
     avgsvn = [(svn[x]+svn[x+1])/2 for x in 1:2:(size(svn)[1]-1)]
     append!(svns,[avgsvn])
     append!(mut,tri_mut)
@@ -236,7 +239,7 @@ end
 decay = [svns[i][end] for i in 1:size(svns)[1]]
 append!(decays,[decay])
 end
-p = plot(svns,title=string("MPO Gate Rand", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([0.0:0.2:1...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+p = plot(svns,title=string("MPO Gate Rand qubit sites, varying meas_p"), label=string.(transpose([0.0:0.2:1...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
 p = plot([0.05:0.05:1...],decays[end-2:end],title=string("Bip_ent Gat: 2Haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
 # m = plot(real(mut))
 display(p)
