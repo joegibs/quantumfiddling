@@ -221,191 +221,193 @@ function do_trials(N,steps,meas_p,trials)
   return svn_trials,tri_trials
 end
 
-decays=[]
-for n in [4,6,8]
-# N = 6
-# cutoff = 1E-8
-steps = 4*n
-meas_p=0.
-svns=[]
-mut = []
-for i in [0.05:0.05:1...]
-    print("\n meas_p $i \n")
-    svn,tri_mut =do_trials(n,steps,i,10)
-    avgsvn = [(svn[x]+svn[x+1])/2 for x in 1:2:(size(svn)[1]-1)]
-    append!(svns,[avgsvn])
-    append!(mut,tri_mut)
+function main()
+  decays=[]
+  svns=[]
+  for n in [4]
+  # N = 6
+  # cutoff = 1E-8
+  steps = 4*n
+  meas_p=[0.05:0.2:1...]
+  
+  mut = []
+  for i in meas_p
+      print("\n meas_p $i \n")
+      svn,tri_mut =do_trials(n,steps,i,100)
+      avgsvn = [(svn[x]+svn[x+1])/2 for x in 1:2:(size(svn)[1]-1)]
+      append!(svns,[avgsvn])
+      append!(mut,tri_mut)
+  end
+  decay = [svns[i][end] for i in 1:size(svns)[1]]
+  append!(decays,[decay])
+  end
+  p = plot(svns,title=string("MPO Gate Rand qubit sites, varying meas_p"), label=string.(transpose([0.0:0.2:1...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+  # p = plot(meas_p,decays[end-2:end],title=string("Bip_ent Gat: 2Haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+  # m = plot(real(mut))
+  display(p)
 end
-decay = [svns[i][end] for i in 1:size(svns)[1]]
-append!(decays,[decay])
-end
-p = plot(svns,title=string("MPO Gate Rand qubit sites, varying meas_p"), label=string.(transpose([0.0:0.2:1...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-p = plot([0.05:0.05:1...],decays[end-2:end],title=string("Bip_ent Gat: 2Haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-# m = plot(real(mut))
-display(p)
+# sits = [4,6,8]
+# interval = [0.05:0.05:1...]
+# py"""
+# import numpy as np
+# import scipy
+# L=$sits
+# interval = $interval#[x/10 for x in range(9)]
+# tot_vonq = $decays
+# def xfunc(p,l,pc,v):
+#     return (p-pc)*l**(1/v)
 
-sits = [4,6,8]
-interval = [0.05:0.05:1...]
-py"""
-import numpy as np
-import scipy
-L=$sits
-interval = $interval#[x/10 for x in range(9)]
-tot_vonq = $decays
-def xfunc(p,l,pc,v):
-    return (p-pc)*l**(1/v)
+# def Spc(pc,l):
+#     spot, = np.where(np.array(L)==l)
+#     return np.interp(pc,interval,tot_vonq[spot[0]])
 
-def Spc(pc,l):
-    spot, = np.where(np.array(L)==l)
-    return np.interp(pc,interval,tot_vonq[spot[0]])
+# def yfunc(p,l,pc):
+#     spot, = np.where(np.array(L)==l)
 
-def yfunc(p,l,pc):
-    spot, = np.where(np.array(L)==l)
+#     a=np.interp(p,interval,tot_vonq[spot[0]])
+#     b = Spc(pc,l)
+#     return  a-b 
 
-    a=np.interp(p,interval,tot_vonq[spot[0]])
-    b = Spc(pc,l)
-    return  a-b 
+# def mean_yfunc(p,pc):
+#     return np.mean([yfunc(p,l,pc) for l in L])
+#     from scipy.optimize import minimize
 
-def mean_yfunc(p,pc):
-    return np.mean([yfunc(p,l,pc) for l in L])
-    from scipy.optimize import minimize
+# def R(params):
+#     pc,v = params
+#     #sum over all the square differences
+#     x_vals = [[xfunc(p,l,pc,v) for p in interval] for l in L]
+#     y_vals = [[yfunc(p,l,pc) for p in interval] for l in L]
 
-def R(params):
-    pc,v = params
-    #sum over all the square differences
-    x_vals = [[xfunc(p,l,pc,v) for p in interval] for l in L]
-    y_vals = [[yfunc(p,l,pc) for p in interval] for l in L]
-
-    min_x = np.max([x[0] for x in x_vals]) #max for smallest value st all overlap
-    max_x = np.min([x[-1] for x in x_vals]) # min again to take overlap
-    xi = np.linspace(min_x,max_x)
-    mean_x_vals = np.mean(x_vals,axis=0)
-    mean_y_vals = [mean_yfunc(p,pc) for p in interval]
+#     min_x = np.max([x[0] for x in x_vals]) #max for smallest value st all overlap
+#     max_x = np.min([x[-1] for x in x_vals]) # min again to take overlap
+#     xi = np.linspace(min_x,max_x)
+#     mean_x_vals = np.mean(x_vals,axis=0)
+#     mean_y_vals = [mean_yfunc(p,pc) for p in interval]
     
-    def mean_y(x):
-        return np.interp(x,mean_x_vals,mean_y_vals)
+#     def mean_y(x):
+#         return np.interp(x,mean_x_vals,mean_y_vals)
     
-    return np.sum([[(np.interp(x,x_vals[i],y_vals[i]) - mean_y(x))**2 for x in xi] for i in range(len(L))]) 
-initial_guess = [0.0,0.1]
-res = scipy.optimize.minimize(R, initial_guess)
+#     return np.sum([[(np.interp(x,x_vals[i],y_vals[i]) - mean_y(x))**2 for x in xi] for i in range(len(L))]) 
+# initial_guess = [0.0,0.1]
+# res = scipy.optimize.minimize(R, initial_guess)
     
-"""
+# """
 
 
-ppc,vv=py"res.x"
+# ppc,vv=py"res.x"
 
-py"""
-ppc,vv=res.x
-x_vals = [[xfunc(p,l,ppc,vv) for p in interval] for l in L]
-y_vals = [[yfunc(p,l,ppc) for p in interval] for l in L]
-# mean_y_vals = [mean_yfunc(p,0.26) for p in interval]
-"""
-plot(transpose(py"x_vals"),transpose(py"y_vals"),linewidth=3)
-
-
-# N=4
-# s= siteinds("Qubit",N)
-# samp_row = [1,1,1,1,1]
-# magz = ["Pup","Pup","Pup","Pup","Pup"]
-# ampo = OpSum()
-# for i in 1:N
-#   print(N)
-#   if Bool(samp_row[i])
-#       ampo += magz[i],i
-#   end
-# end
-# H = MPO(ampo,s)
+# py"""
+# ppc,vv=res.x
+# x_vals = [[xfunc(p,l,ppc,vv) for p in interval] for l in L]
+# y_vals = [[yfunc(p,l,ppc) for p in interval] for l in L]
+# # mean_y_vals = [mean_yfunc(p,0.26) for p in interval]
+# """
+# plot(transpose(py"x_vals"),transpose(py"y_vals"),linewidth=3)
 
 
-# n=5
-# s = siteinds("S=1/2", n)
-# psi = randomMPS(s)
+# # N=4
+# # s= siteinds("Qubit",N)
+# # samp_row = [1,1,1,1,1]
+# # magz = ["Pup","Pup","Pup","Pup","Pup"]
+# # ampo = OpSum()
+# # for i in 1:N
+# #   print(N)
+# #   if Bool(samp_row[i])
+# #       ampo += magz[i],i
+# #   end
+# # end
+# # H = MPO(ampo,s)
 
-# rho = outer(psi',psi)
-# os = OpSum()
-# for j in 1:(n- 1)
-#   os += "Sz", j, "Sz", j + 1
-#   os += 0.5, "S+", j, "S-", j + 1
-#   os += 0.5, "S-", j, "S+", j + 1
-# end
-# # Convert these terms to an MPO tensor network
-# H = MPO(os, s)
-# rho = apply(H,rho; apply_dag=true)
-# normalize!(rho)
-# M=deepcopy(rho)
-# N = length(M)
-# s = siteinds(M)
-# R = Vector{ITensor}(undef, N)
-# R[N] = M[N] * δ(dag(s[N]))
+
+# # n=5
+# # s = siteinds("S=1/2", n)
+# # psi = randomMPS(s)
+
+# # rho = outer(psi',psi)
+# # os = OpSum()
+# # for j in 1:(n- 1)
+# #   os += "Sz", j, "Sz", j + 1
+# #   os += 0.5, "S+", j, "S-", j + 1
+# #   os += 0.5, "S-", j, "S+", j + 1
+# # end
+# # # Convert these terms to an MPO tensor network
+# # H = MPO(os, s)
+# # rho = apply(H,rho; apply_dag=true)
+# # normalize!(rho)
+# # M=deepcopy(rho)
+# # N = length(M)
+# # s = siteinds(M)
+# # R = Vector{ITensor}(undef, N)
+# # R[N] = M[N] * δ(dag(s[N]))
+# # for n in reverse(1:(N - 1))
+# #   R[n] = M[n] * δ(dag(s[n])) * R[n + 1]
+# # end
+
+
+# L = Vector{ITensor}(undef, N)
+# L[N] = tr(M[N])
 # for n in reverse(1:(N - 1))
-#   R[n] = M[n] * δ(dag(s[n])) * R[n + 1]
+#   L[n] = tr(M[n]) *R[n+1]
 # end
 
+# function sample_mpo(M::MPO)
+#   N = length(M)
+#   s = siteinds(M)
+#   R = Vector{ITensor}(undef, N)
+#   R[N] = M[N] * δ(dag(s[N]))
+#   for n in reverse(1:(N - 1))
+#     R[n] = M[n] * δ(dag(s[n])) * R[n + 1]
+#   end
 
-L = Vector{ITensor}(undef, N)
-L[N] = tr(M[N])
-for n in reverse(1:(N - 1))
-  L[n] = tr(M[n]) *R[n+1]
-end
+#   if abs(1.0 - norm(M)) > 1E-8
+#     error("sample: MPO is not normalized, norm=$(norm(M[1]))")
+#   end
 
-function sample_mpo(M::MPO)
-  N = length(M)
-  s = siteinds(M)
-  R = Vector{ITensor}(undef, N)
-  R[N] = M[N] * δ(dag(s[N]))
-  for n in reverse(1:(N - 1))
-    R[n] = M[n] * δ(dag(s[n])) * R[n + 1]
-  end
+#   result = zeros(Int, N)
+#   ρj = M[1] * R[2]
+#   Lj = ITensor()
 
-  if abs(1.0 - norm(M)) > 1E-8
-    error("sample: MPO is not normalized, norm=$(norm(M[1]))")
-  end
-
-  result = zeros(Int, N)
-  ρj = M[1] * R[2]
-  Lj = ITensor()
-
-  for j in 1:N
-    s = siteind(M, j)
-    d = dim(s)
-    # Compute the probability of each state
-    # one-by-one and stop when the random
-    # number r is below the total prob so far
-    pdisc = 0.0
-    r = rand()
-    # Will need n, An, and pn below
-    n = 1
-    projn = ITensor()
-    pn = 0.0
-    while n <= d
-      projn = ITensor(s)
-      projn[s => n] = 1.0
-      pnc = (ρj * projn * prime(projn))[]
-      if imag(pnc) > 1e-8
-        @warn "In sample, probability $pnc is complex."
-      end
-      pn = real(pnc)
-      pdisc += pn
-      (r < pdisc) && break
-      n += 1
-    end
-    result[j] = n
-    if j < N
-      if j == 1
-        Lj = M[j] * projn * prime(projn)
-      elseif j > 1
-        Lj = Lj * M[j] * projn * prime(projn)
-      end
-      if j == N - 1
-        ρj = Lj * M[j + 1]
-      else
-        ρj = Lj * M[j + 1] * R[j + 2]
-      end
-      s = siteind(M, j + 1)
-      normj = (ρj * δ(s', s))[]
-      ρj ./= normj
-    end
-  end
-  return result
-end
+#   for j in 1:N
+#     s = siteind(M, j)
+#     d = dim(s)
+#     # Compute the probability of each state
+#     # one-by-one and stop when the random
+#     # number r is below the total prob so far
+#     pdisc = 0.0
+#     r = rand()
+#     # Will need n, An, and pn below
+#     n = 1
+#     projn = ITensor()
+#     pn = 0.0
+#     while n <= d
+#       projn = ITensor(s)
+#       projn[s => n] = 1.0
+#       pnc = (ρj * projn * prime(projn))[]
+#       if imag(pnc) > 1e-8
+#         @warn "In sample, probability $pnc is complex."
+#       end
+#       pn = real(pnc)
+#       pdisc += pn
+#       (r < pdisc) && break
+#       n += 1
+#     end
+#     result[j] = n
+#     if j < N
+#       if j == 1
+#         Lj = M[j] * projn * prime(projn)
+#       elseif j > 1
+#         Lj = Lj * M[j] * projn * prime(projn)
+#       end
+#       if j == N - 1
+#         ρj = Lj * M[j + 1]
+#       else
+#         ρj = Lj * M[j + 1] * R[j + 2]
+#       end
+#       s = siteind(M, j + 1)
+#       normj = (ρj * δ(s', s))[]
+#       ρj ./= normj
+#     end
+#   end
+#   return result
+# end
 
