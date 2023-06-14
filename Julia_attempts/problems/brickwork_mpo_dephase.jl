@@ -1,5 +1,4 @@
-#not relaly working, dont see an increase in bip-ent
-#need to change the sampling
+
 using ITensors
 using Random
 using Plots
@@ -8,6 +7,16 @@ using LaTeXStrings
 using LinearAlgebra
 using PyCall
 
+function rho_to_dense(rho,s)
+  Hitensor = ITensor(1.)
+  N = length(s)
+  for i = 1:N
+      Hitensor *= rho[i]
+  end
+
+  A=Array(Hitensor,prime(s),s)
+  return reshape(A,2^N,2^N)
+end
 
 function kraus_dephase(rho,s,p)
     #define the two operators
@@ -161,7 +170,7 @@ function samp_mps(rho,s,samp_row)
   return rho
 end
 
-function gen_step(N,rho,s,step_num,meas_p)
+function gen_step(N,rho,s,step_num,meas_p,noise)
     #apply gates
   row = make_row(N,Bool(step_num%2),false)
   gates = ITensor[]
@@ -185,18 +194,18 @@ function gen_step(N,rho,s,step_num,meas_p)
   rho = samp_mps(rho,s,samp_row)
   
   #kraus_dephase
-  rho = kraus_dephase(rho,s,0.15)
+  rho = kraus_dephase(rho,s,noise)
   return rho,measured_vals
 end
 
-function do_exp(N,steps,meas_p)
+function do_exp(N,steps,meas_p,noise)
   s = siteinds("Qubit", N) #+1 for ancilla
   psi = productMPS(s, "Up" )
   rho=outer(psi',psi)
 
   svn =[]
   for i in 1:steps
-      rho ,meas_svn= gen_step(N,rho,s,i,meas_p)
+      rho ,meas_svn= gen_step(N,rho,s,i,meas_p,noise)
       append!(svn,meas_svn)
   end
   #tri_mut = tri_part_MI(psi,[1,2],[3,4],[5,6])
@@ -208,11 +217,11 @@ function do_exp(N,steps,meas_p)
   return svn,tri_mut
 end
 
-function do_trials(N,steps,meas_p,trials)
-  svn_trials,tri_trials = do_exp(N,steps,meas_p)
+function do_trials(N,steps,meas_p,trials,noise)
+  svn_trials,tri_trials = do_exp(N,steps,meas_p,noise)
   for i in 2:trials
       print(i)
-      nSvn,ntm = do_exp(N,steps,meas_p)
+      nSvn,ntm = do_exp(N,steps,meas_p,noise)
       svn_trials = 2*mean([(i-1)/i*svn_trials,1/i*nSvn])
       tri_trials = 2*mean([(i-1)/i*tri_trials,1/i*ntm])
 
@@ -221,19 +230,18 @@ function do_trials(N,steps,meas_p,trials)
   return svn_trials,tri_trials
 end
 
-function main()
+function main(meas_ps=[0.05:0.2:1...],trials=10,noise=0.0)
   decays=[]
   svns=[]
   for n in [4]
   # N = 6
   # cutoff = 1E-8
-  steps = 4*n
-  meas_p=[0.05:0.2:1...]
+  steps = 8*n
   
   mut = []
-  for i in meas_p
+  for i in meas_ps
       print("\n meas_p $i \n")
-      svn,tri_mut =do_trials(n,steps,i,100)
+      svn,tri_mut =do_trials(n,steps,i,trials,noise)
       avgsvn = [(svn[x]+svn[x+1])/2 for x in 1:2:(size(svn)[1]-1)]
       append!(svns,[avgsvn])
       append!(mut,tri_mut)
@@ -242,7 +250,7 @@ function main()
   append!(decays,[decay])
   end
   p = plot(svns,title=string("MPO Gate Rand qubit sites, varying meas_p"), label=string.(transpose([0.0:0.2:1...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-  # p = plot(meas_p,decays[end-2:end],title=string("Bip_ent Gat: 2Haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+  # p = plot(meas_ps,decays[end-2:end],title=string("Bip_ent Gat: 2Haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
   # m = plot(real(mut))
   display(p)
 end

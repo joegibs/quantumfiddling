@@ -398,7 +398,6 @@ end
 function kraus_dephase(rho,s,p)
   #define the two operators
   #(1-p)ρ + pZρZ
-  rho2= copy(rho)
   N=length(rho)
   gates = ITensor[]
   for i in 1:N
@@ -407,8 +406,6 @@ function kraus_dephase(rho,s,p)
   end
   #apply the operators
   rho = (1-p)*rho + p*apply(gates,rho;apply_dag=true)
-  #sum the results
-  # tot = (1-p)*rho +p*(rho2)
   return rho
 end
 N = 4
