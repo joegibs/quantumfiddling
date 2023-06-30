@@ -190,6 +190,7 @@ function gen_step(N,rho,s,step_num,meas_p,noise)
 
   normalize!(rho)
   #sample as needed
+  
   samp_row=gen_samp_row(N,meas_p)
   rho = samp_mps(rho,s,samp_row)
   
