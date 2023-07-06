@@ -267,7 +267,7 @@ function do_exp(N,steps,meas_p,noise)
   #     arr = two_point_MI(psi,2,i)
   #     append!(tri_mut,arr)
   # end
-  return svn,tri_mut,rho
+  return svn,tri_mut,rho,s
 end
 
 
@@ -279,7 +279,7 @@ n=6
 steps = 50
 
 
-svn,tri_mut,rho =do_exp(n,steps,0,0.23);
+svn,tri_mut,rho,sites =do_exp(n,steps,0.0,0.1);
 print(bond_dim_array(rho))
 
 #checked 0 meas 0 noise, say cannonizaation scaling d^2^n as kinda expected and happy to see ☑
@@ -287,3 +287,27 @@ print(bond_dim_array(rho))
 #checked 0.5 meas 0 noise some growth in bond dim but not much ☑
 #check 0 meas variable noise see a critical value around 0.23 ☑
 
+Hitensor = ITensor(1.)
+for i = 1:n
+    Hitensor *= rho[i]
+end
+
+A=Array(Hitensor,sites[1]',sites[2]',sites[3]',sites[4]',sites[5]',sites[6]',sites[1],sites[2],sites[3],sites[4],sites[5],sites[6]);
+display(reshape(A,64,64))
+#check svd
+F=svd(reshape(A,64,64))
+reshape(A,64,64) ≈ F.U * diagm(F.S) * F.Vt
+for projansk_iter in 1:64
+colm1 = F.U[:,projansk_iter]
+cutoff = 1E-8
+colmtens=ITensor(ComplexF64,reshape(colm1,2,2,2,2,2,2),sites)
+colmmps = MPS(colmtens,sites;cutoff=cutoff)
+print(bond_dim_array(colmmps),"\n")
+end
+#for high meas bond dim for the mps is low bond dim as expected pure state mpo which is expected because
+# i equivilant to each case, pure remains pure
+
+#for no meas but noise, high noise give mpo with low bond and diagonalizing it yeilds low bond dim mps (steven white paper) Pca
+#for no meas but low gives a high dim mpo and diagonalizing it yeilds high dim mps
+#this kinda says a low entangled density operator can be decompose into low entangled states
+# and high entangled density operators can be decomposed into high entangled states
