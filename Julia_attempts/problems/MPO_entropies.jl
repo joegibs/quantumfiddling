@@ -125,6 +125,15 @@ psi = apply(gates,psi1)
 rec_ent(rho,2,s)
 split_ren(rho,2)
 rec_ent_mps(psi,2)
+
+Hitensor = ITensor(1.)
+for i = 1:N
+    Hitensor *= rho[i]
+end
+
+A=Array(Hitensor,prime(s),s)
+println(reshape(A,16,16))
+
 ###
 b=2
 n = length(rho)
@@ -431,4 +440,3 @@ s1 = sites[2]
 p1 = op("Rz2",s1,θ=2)
 gates = ITensor[]
 push!(gates, p1)
-

@@ -263,8 +263,8 @@ function do_trials(N,steps,meas_p,trials)
 end
 
 decays=[]
-sits = [6,8,10]
-interval = 0.0:0.05:1
+sits = [6]
+interval = 0.0:0.1:1
 for n in sits#[6,8,10]
 N = n
 # cutoff = 1E-8
@@ -285,7 +285,7 @@ end
 
 
 p = plot(real(svns),title=string("Gate Rand", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([interval...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-p = plot([0.0:0.05:1...],decays,title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([6:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+p = plot([0.0:0.1:1...],decays,title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([6:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
 # # m = plot(real(mut))
 # display(p)
 

@@ -5,7 +5,7 @@ using ITensors
 
 J=1
 h=0.5
-N=10
+N=5
 
 sites = siteinds("S=1",N)
 
@@ -18,3 +18,8 @@ for j=1:(N) #add magnetic terms
 end
 
 H = MPO(hterms,sites)
+
+Hitensor = ITensor(1.)
+for i = 1:N
+    Hitensor *= H[i]
+end

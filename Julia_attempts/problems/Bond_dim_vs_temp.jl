@@ -58,7 +58,7 @@ function max_dim(psi)
         end
     end
 return max_dim
-end
+  end
 
 function ITensors.op(::OpName"expτSS", ::SiteType"S=1/2", s1::Index, s2::Index; τ,B)
   h =
