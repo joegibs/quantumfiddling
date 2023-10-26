@@ -50,6 +50,7 @@ function rec_ent(rho,b,s)
     for i in 1:(n-b)
         M[i]=rho_temp[b+i]
     end
+    normalize!(M)
     #turn this mpo into a single tensor
     T = prod(M)
  

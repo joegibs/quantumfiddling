@@ -47,6 +47,32 @@ A=Array(Hitensor,s[1]',s[2]',s[3]',s[4]',s[5]',s[6]',s[7]',s[8]',s[1],s[2],s[3],
 display(reshape(A,256,256))
 
 
+N=2
+s = siteinds("Qubit", N)
+psi1 = productMPS(s, "Up" )
+rho = outer(psi1',psi1)
+gates = ITensor[]
+
+h = op("H",[s[1]])
+
+push!(gates, h)
+
+h = op("CNOT",[s[1],s[2]])
+
+push!(gates, h)
+
+cutoff = 1E-8
+
+rho = apply(gates, rho; apply_dag=true)
+psi = apply(gates,psi1)
+
+Hitensor = ITensor(1.)
+for i = 1:N
+    Hitensor *= rho[i]
+end
+
+A=Array(Hitensor,s[1]',s[2]',s[1],s[2]);
+display(reshape(A,4,4))
 
 
 
