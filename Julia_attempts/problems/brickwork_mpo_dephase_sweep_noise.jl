@@ -57,8 +57,10 @@ function kraus_dephase(rho,s,p)
       hj = op("Z", s[i])
       push!(gates, hj)
     end
+    rhoI=MPO(s,"I")
+    rhoI=rhoI/tr(rhoI)
     #apply the operators
-    rho = (1-p)*rho + p*apply(gates,rho;apply_dag=true)
+    rho = (1-p)*rho + p*rhoI#p*apply(gates,rho;apply_dag=true)
     rho=rho/tr(rho)
     return rho
   end

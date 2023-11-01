@@ -142,9 +142,16 @@ let #just another state
     @show "rand", rec_ent_mps(psi,2)
     
 end
+let 
+    N = 6
+    s = siteinds("S=1/2",N)
+    rho = MPO(s, "Id")
+    rho=rho/tr(rho)
 
+    return rec_ent(rho,3,s)
+end
 let
-    N = 2
+    N = 4
     s = siteinds("S=1/2",N)
     A = ITensor(s...)
     A[1,1] = 1/√2

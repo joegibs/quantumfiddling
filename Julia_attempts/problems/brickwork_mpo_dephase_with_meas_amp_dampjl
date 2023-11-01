@@ -57,18 +57,26 @@ function rho_to_dense(rho,s)
   A=Array(Hitensor,prime(s),s)
   return reshape(A,2^N,2^N)
 end
-
-function kraus_dephase(rho,s,p)
+ITensors.op(::OpName"K0",::SiteType"Qubit"; p::Number=0) =
+ [1 0
+  0 √(1-p)]
+function kraus_amp_damp(rho,s,p)
     #define the two operators
     #(1-p)ρ + pZρZ
     N=length(rho)
-    gates = ITensor[]
+    gates1 = ITensor[]
+    gates2 = ITensor[]
+
     for i in 1:N
-      hj = op("Z", s[i])
-      push!(gates, hj)
+      hj = op("S+", s[i])
+      push!(gates1, hj)
     end
+    for i in 1:N
+        hj = op("K0", s[i];p)
+        push!(gates2, hj)
+      end
     #apply the operators
-    rho = (1-p)*rho + p*apply(gates,rho;apply_dag=true)
+    rho = apply(gates2,rho;apply_dag=true) +p*apply(gates1,rho;apply_dag=true)
     return rho
   end
 
@@ -230,7 +238,7 @@ function gen_step(N,rho,s,step_num,meas_p,noise)
   #calculate obs
   rho=rho/tr(rho)
   #kraus_dephase
-  rho = kraus_dephase(rho,s,noise)
+  rho = kraus_amp_damp(rho,s,noise)
   rho=rho/tr(rho)
   
   #sample as needed
@@ -310,7 +318,7 @@ function main(meas_ps=[0.0:0.2:1...],trials=10,noise=0.0)
   display(p2)
 end
 
-function main_noise(meas_ps=0,trials=20,noise=[0.0:0.1:0.5...])
+function main_noise(meas_ps=0,trials=10,noise=[0.0:0.2:1...])
     decays=[]
     svns=[]
     negs=[]
@@ -392,7 +400,7 @@ function main2(meas_ps=[0.1:0.1:1...],trials=5,noise=[0.01:0.05:0.5...])
   display(p2)
 end
 
-function main_proj(meas_ps=[0:0.2:1...],trials=10,noise=[0.0:0.05:0.5...])
+function main_proj(meas_ps=[0:0.2:1...],trials=10,noise=[0.0:0.2:0.1...])
 
     decays=[]
     growths=[]
@@ -401,9 +409,9 @@ function main_proj(meas_ps=[0:0.2:1...],trials=10,noise=[0.0:0.05:0.5...])
   labels=[]
   labels2=[]
   labels3=[]
-  n=6
+  n=4
   for meas_p in meas_ps
-    steps=60
+    steps=40
   # N = 6
   # cutoff = 1E-8
   
@@ -449,13 +457,13 @@ function main_proj(meas_ps=[0:0.2:1...],trials=10,noise=[0.0:0.05:0.5...])
 #             xlabel = "Steps",
 #             ylabel = L"$\textbf{S_{vn}}(L/2)$",
 #             )
-    @show svns
+    # @show svns
     p2 = plot(noise,decays,
         title=string("MPO Gate Rand qubit sites, varying meas_p"),
         legend=:outertopright,
         label=permutedims(labels3),
         linewidth=3,
-        xaxis=:log,
+        # xaxis=:log,
         xlabel = "γ",
         ylabel = L"$\textbf{S_{vn}}(L/2)$",
         palette=:batlow10
@@ -465,7 +473,7 @@ function main_proj(meas_ps=[0:0.2:1...],trials=10,noise=[0.0:0.05:0.5...])
         legend=:outertopright,
         label=permutedims(labels3),
         linewidth=3,
-        xaxis=:log,
+        # xaxis=:log,
         xlabel = "γ",
         ylabel = L"$\textbf{N_{vn}}(L/2)$",
         palette=:batlow10
@@ -482,3 +490,38 @@ end
 
 plot(tst,arr)
 display(p2)
+
+N=1
+s = siteinds("Qubit", N)
+psi1 = productMPS(s, "Dn" )
+rho = outer(psi1',psi1)
+gates = ITensor[]
+negativity(rho,1,s)
+log_negativity(rho,1,s)
+
+s1 = s[1]
+s2 = s[2]
+hj = op("H",s1)
+push!(gates, hj)
+hj = op("CNOT",[s1,s2])
+push!(gates, hj)
+
+rho = apply(gates, rho; apply_dag=true, cutoff = 1E-8)
+psi = apply(gates,psi1)
+
+
+gates1 = ITensor[]
+gates2 = ITensor[]
+
+p=1
+for i in 1:N
+  hj = op("S+", s[i])
+  push!(gates1, hj)
+end
+for i in 1:N
+    hj = op("K0", s[i];p)
+    push!(gates2, hj)
+  end
+#apply the operators
+rho = apply(gates2,rho;apply_dag=true) +p*apply(gates1,rho;apply_dag=true)
+return rho
