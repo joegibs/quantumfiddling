@@ -7,8 +7,6 @@ function main(meas_ps=[0.0:0.2:1...],trials=10,noise=0.0)
     svns=[]
     negs=[]
     for n in [4]
-    # N = 6
-    # cutoff = 1E-8
     steps = 8*n
     
     mut = []
@@ -20,15 +18,13 @@ function main(meas_ps=[0.0:0.2:1...],trials=10,noise=0.0)
   
         append!(svns,[avgsvn])
         append!(negs,[avgneg])
-      #   append!(mut,tri_mut)
     end
     decay = [svns[i][end] for i in 1:size(svns)[1]]
     append!(decays,[decay])
     end
     p = plot(svns,title=string("MPO Gate Rand qubit sites, varying meas_p"), label=string.(transpose(meas_ps)), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
     p2= plot(negs,title=string("MPO Gate Rand qubit sites, varying meas_p"), label=string.(transpose(meas_ps)), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{N_{vn}}(L/2)$")
-    # p = plot(meas_ps,decays[end-2:end],title=string("Bip_ent Gat: 2Haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-    # m = plot(real(mut))
+
     display(p)
     display(p2)
   end

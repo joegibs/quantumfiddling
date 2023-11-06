@@ -112,13 +112,14 @@ function samp_mps(rho,s,samp_row)
   return rho
 end
 
-function gen_step(N,rho,s,step_num,meas_p,noise,noise_type)
+function gen_step(N,rho,s,step_num,meas_p,noise,noise_type,meas_during)
     #=
     perform one step of brickwork
     =#
     #apply gates
   row = make_row(N,Bool(step_num%2),false)
   gates = ITensor[]
+  measured_vals=([0],[0])
   for j in row
       s1 = s[j[1]]
       s2 = s[j[2]]
@@ -127,7 +128,9 @@ function gen_step(N,rho,s,step_num,meas_p,noise,noise_type)
       push!(gates, Gj)
   end
   cutoff = 1E-8
-  measured_vals = (rec_ent(rho,Int(round(N/2)),s),log_negativity(rho,Int(round(N/2)),s))
+  if meas_during
+    measured_vals = (rec_ent(rho,Int(round(N/2)),s),log_negativity(rho,Int(round(N/2)),s))
+  end
   rho = apply(gates, rho;apply_dag=true,cutoff=1E-8)
 
   #calculate obs
@@ -166,10 +169,32 @@ function do_exp(N,steps,meas_p,noise,noise_type)
     end
     #tri_mut = tri_part_MI(psi,[1,2],[3,4],[5,6])
     
-    # for i in 3:length(psi)-1
+    # for i in 3:length(psi)-1s
     #     arr = two_point_MI(psi,2,i)
     #     append!(tri_mut,arr)
     # end
+    return svn,neg
+  end
+function do_exp(N,steps,meas_p,noise,noise_type,meas_during)
+    s = siteinds("Qubit", N) #+1 for ancilla
+    psi = productMPS(s, "Up" )
+    rho=outer(psi',psi)
+  
+    svn =[]
+    neg= []
+    for i in 1:steps
+        rho ,(meas_svn,meas_neg)= gen_step(N,rho,s,i,meas_p,noise,noise_type,meas_during)
+        if meas_during
+            append!(svn,meas_svn)
+            append!(neg,meas_neg)
+        end
+      #   @show(tr(rho))
+    end
+    if !meas_during
+        (meas_svn,meas_neg)=(rec_ent(rho,Int(round(N/2)),s),log_negativity(rho,Int(round(N/2)),s))
+        append!(svn,meas_svn)
+        append!(neg,meas_neg)
+    end
     return svn,neg
   end
 
@@ -180,8 +205,17 @@ function do_trials(N,steps,meas_p,trials,noise,noise_type)
         nSvn,ntm = do_exp(N,steps,meas_p,noise,noise_type)
         svn_trials = 2*mean([(i-1)/i*svn_trials,1/i*nSvn])
         tri_trials = 2*mean([(i-1)/i*tri_trials,1/i*ntm])
-  
-        
+    end
+    return svn_trials,tri_trials
+end
+
+function do_trials(N,steps,meas_p,trials,noise,noise_type,meas_during)
+    svn_trials,tri_trials = do_exp(N,steps,meas_p,noise,noise_type,meas_during)
+    for i in 2:trials
+        print(i)
+        nSvn,ntm = do_exp(N,steps,meas_p,noise,noise_type,meas_during)
+        svn_trials = 2*mean([(i-1)/i*svn_trials,1/i*nSvn])
+        tri_trials = 2*mean([(i-1)/i*tri_trials,1/i*ntm])
     end
     return svn_trials,tri_trials
 end
