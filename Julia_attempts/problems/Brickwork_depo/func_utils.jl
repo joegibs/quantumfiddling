@@ -2,6 +2,16 @@ using ITensors
 using Random
 using LinearAlgebra
 
+function RandomUnitaryMatrix(N::Int)
+  x = (rand(N,N) + rand(N,N)*im) / sqrt(2)
+  f = qr(x)
+  diagR = sign.(real(diag(f.R)))
+  diagR[diagR.==0] .= 1
+  diagRm = diagm(diagR)
+  u = f.Q * diagRm
+  
+  return u
+end
 
 function rho_to_dense(rho,s)
     #=
@@ -23,11 +33,11 @@ function partial_transpose(rho::MPO, sites)
     #=
     wikipedia.org/wiki/Peres–Horodecki_criterion
     =#
-    rho = copy(rho)
+    rho1 = copy(rho)
     for n in sites
-      rho[n] = swapinds(rho[n], siteinds(rho, n)...)
+      rho1[n] = swapinds(rho1[n], siteinds(rho1, n)...)
     end
-    return rho
+    return rho1
 end
 
 function trace_norm_dense(A)
@@ -35,22 +45,27 @@ function trace_norm_dense(A)
     A: dense matrix
     =#
     e,_=eigen(A)
-    return sum(abs.(e))
+    # _,S,_=svd(A)
+    return (sum(abs.(e))-sum(e))/2
 end
 
 function negativity(rho::MPO, b, s)
     #=
-    log negativity of an itensor mpo
+    negativity of an itensor mpo
     =#
     n = length(rho)
     orthogonalize!(rho,b)
     rho_temp = deepcopy(rho)
     # normalize!(rho_temp)
-    M=partial_transpose(rho_temp,[b:n-b...])
+    M=partial_transpose(rho_temp,[b:n...])
 
     #turn this mpo into a single tensor
     T = rho_to_dense(M,s)
-    return  (trace_norm_dense(T)-1)/2
+    return  (trace_norm_dense(T))
+end
+function log_negativity(A::MPO, b, s)
+  neg = negativity(A, b, s)
+  return log2(2*neg+1)
 end
 
 function rec_ent(rho::MPO,b,s)

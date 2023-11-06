@@ -1,6 +1,8 @@
 using ITensors
 using Random
 using LinearAlgebra
+using Statistics
+
 include("func_utils.jl")
 
 #=
