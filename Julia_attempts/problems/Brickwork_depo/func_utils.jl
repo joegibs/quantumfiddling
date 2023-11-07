@@ -104,3 +104,25 @@ function rec_ent(rho::MPO,b,s)
     end
     return SvN
 end
+
+
+
+
+
+
+#file shenanagins
+function open_csv(flname)
+  m = []#Vector{Tuple{Matrix{Int}, Vector{Float64},Int, Float64, Vector{Any}, Vector{Any}}}()
+  open(flname, "r") do io
+      while !eof(io)
+          push!(m, eval(Meta.parse(readline(io))))
+      end
+  end
+  sits = [i for i in m[1]]
+  interval = [i for i in m[2]]
+  num_samp = m[3]
+  noise_val = m[4]
+  decays = [i for i in m[5]]
+  growths = [i for i in m[6]]
+  return sits,interval,num_samp,noise_val,decays,growths
+end
