@@ -10,8 +10,8 @@ using LaTeXStrings
 
 decays=[]
 growths = []
-sits = [4,6,8]
-interval = 0.0:0.2:1
+sits = [4,6]
+interval = 0.0:0.05:1
 for n in sits#[6,8,10]
 N = n
 # cutoff = 1E-8
@@ -21,7 +21,7 @@ svns=[]
 negs = []
     for i in interval
         print("\n meas_p $i \n")
-        svn,neg =do_trials(N,steps,i,80,[0],"None",false)
+        svn,neg =do_trials(N,steps,i,80,0.1,"deph",false)
 
         append!(svns,svn)
         append!(negs,neg)
@@ -34,8 +34,8 @@ end
 
 
 p = plot(real(svns),title=string("Gate Rand", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([interval...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-p = plot([0.0:0.2:1...],decays,title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-p = plot([0.0:0.2:1...],real(growths),title=string("Bip_Neg Gat: 2haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{N_{vn}}(L/2)$")
+p = plot([0.0:0.05:1...],decays,title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+p = plot([0.0:0.05:1...],real(growths),title=string("Bip_Neg Gat: 2haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{N_{vn}}(L/2)$")
 
 sits=[4,6,8]
 py"""

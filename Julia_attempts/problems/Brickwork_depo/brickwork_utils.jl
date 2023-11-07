@@ -201,10 +201,10 @@ function do_exp(N,steps,meas_p,noise,noise_type,meas_during)
   end
 
 function do_trials(N,steps,meas_p,trials,noise,noise_type)
-    svn_trials,tri_trials = do_exp(N,steps,meas_p,noise,noise_type)
+    svn_trials,tri_trials = do_exp(N,steps,meas_p,noise,noise_type,true)
     for i in 2:trials
         print(i)
-        nSvn,ntm = do_exp(N,steps,meas_p,noise,noise_type)
+        nSvn,ntm = do_exp(N,steps,meas_p,noise,noise_type,true)
         svn_trials = 2*mean([(i-1)/i*svn_trials,1/i*nSvn])
         tri_trials = 2*mean([(i-1)/i*tri_trials,1/i*ntm])
     end
