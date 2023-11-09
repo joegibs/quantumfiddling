@@ -39,10 +39,10 @@ end
 
 
 #plotting
-let 
-    fln = "/Users/joeg/Documents/GitHub/quantumfiddling/Julia_attempts/problems/Brickwork_depo/2023_11_07_14_00/pt_mpo.csv"
-    sits2,interval2,num_samp2,noise_val2,decays2,growths2 = open_csv(fln)
+# let 
+#     fln = "/Users/joeg/Documents/GitHub/quantumfiddling/Julia_attempts/problems/Brickwork_depo/2023_11_07_14_00/pt_mpo.csv"
+#     sits2,interval2,num_samp2,noise_val2,decays2,growths2 = open_csv(fln)
 
-    p = plot(interval2,decays2,title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose(sits2)), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-    display(p)
-end
+#     p = plot(interval2,decays2,title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose(sits2)), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+#     display(p)
+# end
