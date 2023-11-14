@@ -1,16 +1,12 @@
 using ITensors
 using Random
 using LinearAlgebra
+using NDTensors
 
-function RandomUnitaryMatrix(N::Int)
-  x = (rand(N,N) + rand(N,N)*im) / sqrt(2)
-  f = qr(x)
-  diagR = sign.(real(diag(f.R)))
-  diagR[diagR.==0] .= 1
-  diagRm = diagm(diagR)
-  u = f.Q * diagRm
-  
-  return u
+function RandomUnitaryMatrix(dim)
+  random_matrix=randn(ComplexF64,(dim,dim))
+  Q, _ = NDTensors.qr_positive(random_matrix)
+  return Q
 end
 
 function rho_to_dense(rho,s)

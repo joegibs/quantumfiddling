@@ -3,6 +3,7 @@ using DelimitedFiles
 using Dates
 cd(@__DIR__)
 include("brickwork_mpo_dephase_with_meas_amp_damp.jl")
+include("brickwork_mpo_dephase_with_meas_one_plot.jl")
 # using .brickwork_mpo_dephase_with_meas_amp_damp
 
 
@@ -47,7 +48,7 @@ heatmap(1:size(data,1),
     xlabel="x values", ylabel="y values",
     title="My title")
 
-contourf(noise, meas, reduce(hcat,arr)', levels=20, color=:turbo)
+contourf(noise, meas, reduce(hcat,arr)', levels=20, color=:turbo,xlabel="noise", ylabel="y values",)
 
 
 mkdir(fld)

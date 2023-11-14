@@ -1,0 +1,142 @@
+"""
+PRELIMINARIES
+"""
+import random
+import numpy as np
+​
+H = 1/np.sqrt(2) * np.array([[1,1],[1,-1]])
+P = np.array([[1,0],[0,1j]])
+X = np.array([[0,1],[1,0]])
+Y = np.array([[0,-1j],[1j,0]])
+Z = np.array([[1,0],[0,-1]])
+CNOT = np.array([[1,0,0,0],[0,1,0,0],[0,0,0,1],[0,0,1,0]])
+CNOTb = np.array([[1,0,0,0],[0,0,0,1],[0,0,1,0],[0,1,0,0]])
+SWAP = np.array([[1,0,0,0],[0,0,1,0],[0,1,0,0],[0,0,0,1]])
+Id = np.identity(4)
+sId = np.identity(2)
+T = np.array([[1,0],[0,np.exp(1j*np.pi/4)]])
+​
+​
+def make_sim(dim, simmean, simwidth):
+    """
+    Makes randomly matrix in GL(N, C). This matrix can be assumed to be 
+    invertible because the measure of non-invertible matrices when 
+    randomly selecting from C(N) is zero
+​
+    Parameters
+    ----------
+    dim : int
+        dimension of matrix
+    simmean : int
+        mean of distribution random complex variables are chosen from
+    simwidth : int
+        width of distribution random complex variables are chosen from
+​
+    Returns
+    -------
+    SM : array
+        matrix in GL(N, C)
+​
+    """
+    
+    RR = np.random.normal(simmean, simwidth, (dim,dim))
+    SM = RR + 1j * np.random.normal(simmean, simwidth, (dim,dim))
+    return SM
+​
+def make_unitary(dim, simmean, simwidth):
+    """
+    Generates unitary matrix via QR decomposition of matrix in GL(N, C)
+    See parameters above
+​
+    Returns
+    -------
+    U : array
+        unitary array
+​
+    """
+    sim = make_sim(dim, simmean, simwidth)
+    Q, R = np.linalg.qr(sim)
+    Etta = np.zeros((dim,dim))
+    for j in range(dim):
+        Etta[j,j] = R[j,j]/np.linalg.norm(R[j,j])
+    U = np.matmul(Q, Etta)
+    return U
+​
+def make_ortho(dim, simmean, simwidth):
+    """
+    Generates unitary matrix via QR decomposition of matrix in GL(N, C)
+    See parameters above
+​
+    Returns
+    -------
+    U : array
+        unitary array
+​
+    """
+    sim = np.random.normal(simmean, simwidth, (dim,dim))
+    Q, R = np.linalg.qr(sim)
+    return -1*Q
+​
+def dephase(unitary):
+    """
+    Dephases unitary, turns it from U(N) to SU(N)
+​
+    Parameters
+    ----------
+    unitary : array
+        input matrix in U(N)
+​
+    Returns
+    -------
+    unitary : array
+        depahsed matrix in SU(N)
+​
+    """
+    
+    glob = np.linalg.det(unitary)
+    theta = np.arctan(np.imag(glob) / np.real(glob)) / 2
+    unitary = unitary * np.exp(-1j*theta)
+    if np.round(np.linalg.det(unitary)) < 0:
+        unitary = unitary * 1j
+    return unitary
+​
+def PPgate():
+​
+    u1 = make_unitary(2, 0, 1)
+    u2 = make_unitary(2, 0, 1)
+    u1 = dephase(u1)
+    u2 = dephase(u2)
+    G_AB = np.array([[u1[0,0], 0, 0, u1[0,1]],
+                      [0, u2[0,0], u2[0,1], 0],
+                      [0, u2[1,0], u2[1,1], 0],
+                      [u1[1, 0], 0, 0, u1[1,1]]])
+    return G_AB
+#%%
+"""
+To do. 
+​
+1. Initialize a brickwork circuit on 12 qubits. Start off in an 
+arbitrary product state
+2. Apply the Clifford specified below
+3. Apply a brickwork circuit of matchgates, for 144 layers
+    See PPgate() function: will generate them for you
+4. After 144 layers, calculate the entanglement spectra as follows
+    a. Get all schmidt values for the state. Square them as needed (ex. in 
+       quimb, they are already squared) assume orthogonalization around bipartition
+    b. Sort all squared schmidt values. Define schmidt values as l_{k}
+    c. Find min(d_k, d_{k+1}) / max(d_k, d_{k+1}) for d_k = l_{k-1} - l_{k} 
+    d. Calculate <~r> for the circuit by the average of all calculated values 
+       in part c.
+    e. Save <~r> for each iteration to a list 
+5. Repeat 1-4 1000 times.
+6. Calculate and record the average of list of saved <~r> values
+7. Do 1-6 for the following Clifford Circuits  (LEFT ACTING FIRST)
+    a. T1 = (CNOT_{12}CNOT_{23}CNOT_{34}...H_1 H_2 H_3 ...)
+    b. T2 = (CNOT_{12}CNOT_{34}CNOT_{56}...CNOT_{32}CNOT{54}...)
+    c. T3 = H_1 H_2 CNOT_{12}
+    d. T4 = H_1 H_2 H_3 CNOT_{12} CNOT_{23}
+    
+Please share code and resulting averages from step 6 with me
+​
+Use whatever you want to do this. Quimb, Qiskit, Dense, whatever. 
+"""
