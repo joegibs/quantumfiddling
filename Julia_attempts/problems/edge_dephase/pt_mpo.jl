@@ -7,7 +7,7 @@ using PyCall
 using LaTeXStrings
 
 
-function main(sits = [4,6],interval = 0.0:0.1:1,num_samp=50,noise=0.1)
+function main(sits = [6,8],interval = 0.0:0.1:1,num_samp=50,noise=0.1)
     decays=[]
     growths = []
     for n in sits#[6,8,10]

@@ -2,7 +2,7 @@ include("brickwork_utils.jl")
 include("func_utils.jl")
 using Plots
 
-function main(meas_ps=[0.0:0.2:1...],trials=100,noise=0.1)
+function main(meas_ps=[0.0:0.2:1...],trials=100,noise=0.0)
     decays=[]
     svns=[]
     negs=[]

@@ -6,6 +6,8 @@ using DelimitedFiles
 using Dates
 using Plots
 using BenchmarkTools
+using LaTeXStrings
+
 
 cd(@__DIR__)
 pwd()
@@ -50,7 +52,7 @@ end
 # end
 
 let 
-    fldr = "/Users/joeg/Documents/GitHub/quantumfiddling/Julia_attempts/problems/Brickwork_depo/2023_11_13"
+    fldr = "/Users/joeg/Documents/GitHub/quantumfiddling/Julia_attempts/problems/Brickwork_depo/2023_11_20_40_damp/"
     growths=[]
     decays =[]
     sits2=0;interval2=0;num_samp2=0;noise_val2=0;
@@ -67,21 +69,27 @@ let
         end
         i=i+1
     end
+    # popfirst!(interval2)
+    popfirst!(sits2)
+    popfirst!(decays)
+    popfirst!(growths)
     # fln = "/Users/joeg/Documents/GitHub/quantumfiddling/Julia_attempts/problems/Brickwork_depo/2023_11_10_11_32/pt_mpo.csv"
     # sits2,interval2,num_samp2,noise_val2,decays2,growths2 = open_csv(fln)
     # @show real(growths)
     # @show size(growths)
     
     # grw2 = real(growths2)
-    p = plot(interval2,real(growths),title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose(sits2)), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+    p = plot(interval2,real(decays),title=string("Bip_ent Gate: 2haar, varying meas_p"), label=string.(transpose(sits2)), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
     display(p)
+    pg = plot(interval2,real(growths),title=string("negativity Gate: 2haar, varying meas_p"), label=string.(transpose(sits2)), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+    display(pg)
 
     py"""
     import numpy as np
     import scipy
     L=$sits2
     interval = $interval2#[x/10 for x in range(9)]
-    tot_vonq = np.real($growths)
+    tot_vonq = np.real($decays)
     def xfunc(p,l,pc,v):
         return (p-pc)*l**(1/v)
 
@@ -116,7 +124,7 @@ let
             return np.interp(x,mean_x_vals,mean_y_vals)
         
         return np.sum([[(np.interp(x,x_vals[i],y_vals[i]) - mean_y(x))**2 for x in xi] for i in range(len(L))]) 
-    initial_guess = [0.0,0.1]
+    initial_guess = [0.2,3]
     res = scipy.optimize.minimize(R, initial_guess)
         
     """
