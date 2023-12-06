@@ -35,31 +35,34 @@ function kraus_dephase(rho,s,p)
     #define the two operators
     #(1-p)ρ + pZρZ
     N=length(rho)
-    gates = ITensor[]
+    
     for i in 1:N
+        gates = ITensor[]
         hj = op("Z", s[i])
         push!(gates, hj)
+        rho = (1-p)*rho + p*apply(gates,rho;apply_dag=true)
+        rho = rho/tr(rho)
     end
-    #apply the operators
-    rho = (1-p)*rho + p*apply(gates,rho;apply_dag=true)
     return rho
 end
 
 function kraus_amp_damp(rho,s,p)
     N=length(rho)
-    gates1 = ITensor[]
-    gates2 = ITensor[]
+
 
     for i in 1:N
+      gates1 = ITensor[]
+      gates2 = ITensor[]
       hj = op("S+", s[i])
       push!(gates1, hj)
+
+      hj = op("K0", s[i];p)
+      push!(gates2, hj)
+      
+      #apply the operators
+      rho = apply(gates2,rho;apply_dag=true) +p*apply(gates1,rho;apply_dag=true)
+      rho=rho/tr(rho)
     end
-    for i in 1:N
-        hj = op("K0", s[i];p)
-        push!(gates2, hj)
-      end
-    #apply the operators
-    rho = apply(gates2,rho;apply_dag=true) +p*apply(gates1,rho;apply_dag=true)
     return rho
   end
 
