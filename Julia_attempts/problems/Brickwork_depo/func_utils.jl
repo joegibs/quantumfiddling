@@ -45,6 +45,11 @@ function trace_norm_dense(A)
     return (sum(abs.(e))-sum(e))/2
 end
 
+function purity(rho::MPO)
+  pur = tr(apply(rho,rho))
+  return pur
+end
+
 function negativity(rho::MPO, b, s)
     #=
     negativity of an itensor mpo
@@ -121,4 +126,21 @@ function open_csv(flname)
   decays = [i for i in m[5]]
   growths = [i for i in m[6]]
   return sits,interval,num_samp,noise_val,decays,growths
+end
+
+function open_csv_purity(flname)
+  m = []#Vector{Tuple{Matrix{Int}, Vector{Float64},Int, Float64, Vector{Any}, Vector{Any}}}()
+  open(flname, "r") do io
+      while !eof(io)
+          push!(m, eval(Meta.parse(readline(io))))
+      end
+  end
+  N = m[1]
+  depth = m[2]
+  num_samp = m[3]
+  noise_int = [i for i in m[4]]
+  meas_int = [i for i in m[5]]
+  purity_arr = [i for i in m[6]]
+  
+  return N,depth,num_samp,noise_int,meas_int,purity_arr
 end

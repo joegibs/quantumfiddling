@@ -1,0 +1,42 @@
+include("purity_mpo.jl")
+include("func_utils.jl")
+ITensors.set_warn_order(20)
+
+using DelimitedFiles 
+using Dates
+using Plots
+using BenchmarkTools
+using LaTeXStrings
+
+
+cd(@__DIR__)
+pwd()
+
+#create data
+let
+    N=6;
+    noise_int = 0:0.1:0.5;
+    meas_int = 0:0.1:0.3;
+    num_samp=10;
+    fld = Dates.format(now(), "YYYY_mm_dd")
+    fld = fld * "_purity"
+    if !isdir(fld)
+        mkdir(fld)
+    end
+    tme = Dates.format(now(), "HH_MM")
+    flname="pt_mpo_$tme.csv"
+    touch(fld*"/"*flname)
+
+    data= @time main(N, depth , num_samp, noise_int, meas_int)
+    # sits,interval,num_samp,noise_val,decays,growths = data
+    #Writing contents to the file 
+    
+    open(fld*"/"*flname, "w") do io 
+        writedlm(io,data,',')
+    end; 
+
+    #readlm() method to read the DelimitedFiles 
+    # tst = readdlm(flname,',')
+
+    # plot(tst)
+end 

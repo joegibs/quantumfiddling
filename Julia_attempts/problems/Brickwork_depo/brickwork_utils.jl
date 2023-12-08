@@ -134,7 +134,8 @@ function gen_step(N,rho,s,step_num,meas_p,noise,noise_type,meas_during)
   end
   cutoff = 1E-8
   if meas_during
-    measured_vals = (rec_ent(rho,Int(round(N/2)),s),log_negativity(rho,Int(round(N/2)),s))
+    # measured_vals = (rec_ent(rho,Int(round(N/2)),s),log_negativity(rho,Int(round(N/2)),s))
+    measured_vals = (purity(rho),[0 0])
   end
   rho = apply(gates, rho;apply_dag=true,cutoff=1E-8)
 
@@ -196,7 +197,8 @@ function do_exp(N,steps,meas_p,noise,noise_type,meas_during)
       #   @show(tr(rho))
     end
     if !meas_during
-        (meas_svn,meas_neg)=(rec_ent(rho,Int(round(N/2)),s),log_negativity(rho,Int(round(N/2)),s))
+        # (meas_svn,meas_neg)=(rec_ent(rho,Int(round(N/2)),s),log_negativity(rho,Int(round(N/2)),s))
+        (meas_svn,meas_neg) = (purity(rho),[0 0])
         append!(svn,meas_svn)
         append!(neg,meas_neg)
     end

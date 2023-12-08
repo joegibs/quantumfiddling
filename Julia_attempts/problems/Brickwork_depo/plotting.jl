@@ -19,7 +19,6 @@ function plot_fldr(fldr)
         end
         @show(noise_val2)
         i=i+1
-        
     end
     # popfirst!(interval2)
     # popfirst!(sits2)
@@ -119,7 +118,7 @@ end
 
 
 let 
-    fldr = "/Users/joeg/Documents/GitHub/quantumfiddling/Julia_attempts/problems/Brickwork_depo/2023_12_01_10_flat_fixed"
+    fldr = "/Users/joeg/Documents/GitHub/quantumfiddling/Julia_attempts/problems/Brickwork_depo/2023_12_05_01_flat"
     plot_fldr(fldr)
 end
 
