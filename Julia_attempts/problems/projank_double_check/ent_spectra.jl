@@ -56,6 +56,37 @@ function calculate_r(psi)
     return mean(r)
 end
 
+
+function sing_vals(psi,b)
+    sing = []
+    orthogonalize!(psi, b)
+    _,S = svd(psi[b], (linkind(psi, b-1), s[b]))
+    for n in 1:dim(S, 1)
+        append!(sing, S[n,n]^2)
+    end
+    return sing
+end
+function calculate_trpk(psi)
+    
+    n = length(psi)
+    #calculate rhoA
+    rhoA = sing_vals(psi,Int(n/2))
+    dep = deepcopy(rhoA)
+    #exp it and recursively add to array
+    tprk= [sum(rhoA.^0)]
+    for _ in 1:20
+        append!(tprk,sum(rhoA))
+        rhoA = rhoA.*dep
+    end
+    return tprk
+end
+
+N=6
+s = siteinds("Qubit", N) #+1 for ancilla
+psi = productMPS(s, "Up" )
+# rho = outer(psi,psi)
+tp = calculate_trpk(psi)
+
 arr_r = []
 for i in 1:100
     N=12
@@ -273,3 +304,46 @@ for i in 1:100
 end
 mean(arr_r)
 
+# let
+#random ppgate case with trpk
+arr_r = zeros(21)
+for i in 1:10
+    N=12
+    steps = 60
+    s = siteinds("Qubit", N)
+    psi = productMPS(s, "Up" )
+    gates=ITensor[]
+    for i in 1:N
+        s1 = s[i]
+        hj = op("Rand1",[s1])
+        push!(gates, hj)
+    end
+    psi = apply(gates,psi)
+
+    psi = do_exp(N,steps,psi,s)
+    arr_r += calculate_trpk(psi)
+end
+show(arr_r./10)
+#random ppgate case with trpk
+arr_r2 = zeros(21)
+for i in 1:10
+    N=12
+    steps = 60
+    s = siteinds("Qubit", N)
+    psi = productMPS(s, "Up" )
+    gates=ITensor[]
+    for i in 1:2:N-1
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("Rand",[s1,s2])
+        push!(gates, hj)
+    end
+    psi = apply(gates,psi)
+
+    psi = do_exp(N,steps,psi,s)
+    arr_r2 += calculate_trpk(psi)
+end
+show(arr_r2./10)
+show(arr_r-arr_r2)
+
+# end

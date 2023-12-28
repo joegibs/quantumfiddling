@@ -1,8 +1,11 @@
 
 
 function plot_fldr(fldr)
-    growths=[]
-    decays =[]
+    purity_arr=[]
+    noise_int=[]
+    meas_int=[]
+    depth=0
+    N=0
     i=1
     for fle in readdir(fldr)
         # @show(fldr*'/'*fle)
@@ -38,7 +41,7 @@ end
 
 
 let 
-    fldr = "/Users/joeg/Documents/GitHub/quantumfiddling/Julia_attempts/problems/Brickwork_depo/2023_12_07_purity"
+    fldr = "/Users/joeg/Documents/GitHub/quantumfiddling/Julia_attempts/problems/Brickwork_depo/2023_12_15_neg_det"
     plot_fldr(fldr)
 end
 

@@ -7,7 +7,7 @@ using PyCall
 using LaTeXStrings
 
 
-function main(sits = [6],interval = 0.0:0.1:0.6,num_samp=1,noise=0.00)
+function main(sits = [4,6],interval = 0.0:0.05:1,num_samp=100,noise=0.0,noise_type="deph")
     decays=[]
     growths = []
     for n in sits#[6,8,10]
@@ -15,11 +15,12 @@ function main(sits = [6],interval = 0.0:0.1:0.6,num_samp=1,noise=0.00)
         N = n
         # cutoff = 1E-8
         steps = 8*N
+        meas_p=0.
         svns=[]
         negs = []
             for i in interval
                 print("\n meas_p $i \n")
-                svn,neg =do_trials(N,steps,i,num_samp,noise,"deph",false)
+                svn,neg =do_trials(N,steps,i,num_samp,noise,noise_type,false)
 
                 append!(svns,svn)
                 append!(negs,neg)
@@ -31,35 +32,6 @@ function main(sits = [6],interval = 0.0:0.1:0.6,num_samp=1,noise=0.00)
     end
     return [sits,interval,num_samp,noise,decays,growths]
 end
-
-function main_noise(sits = [6 8],interval = 0.28,num_samp=5,noise=0.0:0.01:0.1)
-    decays=[]
-    growths = []
-    for n in sits#[6,8,10]
-        @show("number of sites: ",sits)
-        N = n
-        # cutoff = 1E-8
-        steps = 8*N
-        svns=[]
-        negs = []
-            for i in noise
-                print("\n noise $i \n")
-                svn,neg =do_trials(N,steps,interval,num_samp,i,"deph",false)
-
-                append!(svns,svn)
-                append!(negs,neg)
-            end
-        append!(decays,[svns])
-        append!(growths,[negs])
-
-        # append!(decays,[decay])
-    end
-    return [sits,interval,num_samp,noise,decays,growths]
-end
-
-new_dat = main_noise()
-sits,interval,num_samp,noise_val,decays,growths = new_dat
-p = plot([0.0:0.01:0.1...],real(growths),title=string("Bip_Neg Gat: 2haar, varying meas_p"), label=string.(transpose([6:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{N_{vn}}(L/2)$")
 
 # p = plot(real(svns),title=string("Gate Rand", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([interval...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
 # p = plot([0.0:0.05:1...],decays,title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")

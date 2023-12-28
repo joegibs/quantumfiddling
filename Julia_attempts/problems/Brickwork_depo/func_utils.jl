@@ -55,7 +55,7 @@ function negativity(rho::MPO, b, s)
     negativity of an itensor mpo
     =#
     n = length(rho)
-    orthogonalize!(rho,b)
+    #orthogonalize!(rho,b)
     rho_temp = deepcopy(rho)
     # normalize!(rho_temp)
     M=partial_transpose(rho_temp,[b:n...])

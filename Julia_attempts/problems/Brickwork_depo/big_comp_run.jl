@@ -15,15 +15,15 @@ pwd()
 #create data
 let
     sits = [4 6 8];
-    interval = 0.0:0.1:1;
-    num_samp=10;
-    noise_val=0.1;
+    interval = 0.1:0.005:0.8;
+    num_samp=20;
+    noise_val=0.000;
     fld = Dates.format(now(), "YYYY_mm_dd")
-    fld = fld * "_10_flat"
-    if not isdir(fld)
+    fld = fld * "_0_468"
+    if !isdir(fld)
         mkdir(fld)
     end
-    tme = Dates.format(now(), "HH_MM")
+    tme = Dates.format(now(), "HH_MM_SS_sss")
     flname="pt_mpo_$tme.csv"
     touch(fld*"/"*flname)
 
