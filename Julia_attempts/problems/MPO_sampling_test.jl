@@ -41,12 +41,47 @@ function rec_ent(psi,b,s)
     for n in 1:dim(S, 1)
       p = S[n,n]^2
       if p != 0
-        SvN -= p * log(p)
+        SvN -= p * log2(p)
       end
     end
     return SvN
 end
-
+function rec_ent_rho(rho::MPO,b,s)
+    #=
+    Bipartite entropy across b for itensor mpo
+    =#
+    n = length(rho)
+    # orthogonalize!(rho,b)
+    rho_temp = deepcopy(rho)
+    # s = siteinds("Qubit",n) 
+  
+    #contract half   x x x x | | | |
+    L = ITensor(1.0)
+      for i = 1:b
+        L *= tr(rho_temp[i])
+      end
+      # absorb
+      rho_temp[b+1] *= L
+      # no longer a proper mpo
+      M =MPO(n-b)
+      for i in 1:(n-b)
+          M[i]=rho_temp[b+i]
+      end
+      M=M/tr(M)
+      #turn this mpo into a single tensor
+      T = prod(M)
+   
+      # @show T
+      _,S,_ = svd(T,s)#[inds(T)[i] for i = 1:2:length(inds(T))])
+      SvN = 0.0
+      for n in 1:dim(S, 1)
+        p = S[n,n]
+        if p != 0
+          SvN -= p * log2(p)
+        end
+    end
+    return real(SvN)
+end
 function split_ren(psi,b)
     rho=outer(psi',psi)
     n = length(rho)
@@ -184,7 +219,7 @@ ITensors.op(::OpName"Iden",::SiteType"Qubit") =
 function gen_samp_row(N,meas_p)
     return [rand()<meas_p ? 1 : 0 for i in 1:N]
 end
-function samp_mps(psi,s,site)
+function samp_mps(psi::MPS,s,site)
     cutoff = 1E-8
 
     magz = expect(psi,"Pup")
@@ -209,11 +244,12 @@ function gen_step(N,psi,s,step_num,meas_p)
         Gj=hj
         push!(gates, Gj)
     end
-    cutoff = 1E-8
+    cutoff = 1E-15
 
     psi = apply(gates, psi; cutoff)
     #calculate obs
-    measured_vals = rec_ent(psi,Int(round(N/2)),s)
+    rho = outer(psi',psi)
+    measured_vals = (rec_ent(psi,Int(round(N/2)),s),rec_ent_rho(rho,Int(round(N/2)),s))
     
     #metts shenanagins
     # psi = metts(psi,s)
@@ -226,117 +262,82 @@ function gen_step(N,psi,s,step_num,meas_p)
     end
     return psi,measured_vals
 end
-
-function do_exp(N,steps,meas_p)
-    s = siteinds("Qubit", N)
-    psi = productMPS(s, "Up" )
-
-    svn =[]
-    for i in 1:steps
-        psi ,meas_svn= gen_step(N,psi,s,i,meas_p)
-        append!(svn,meas_svn)
+function rho_to_dense(rho,s)
+    Hitensor = ITensor(1.)
+    N = length(s)
+    for i = 1:N
+        Hitensor *= rho[i]
     end
-    #tri_mut = tri_part_MI(psi,[1,2],[3,4],[5,6])
-    tri_mut = []
-    # for i in 3:length(psi)-1
-    #     arr = two_point_MI(psi,2,i)
-    #     append!(tri_mut,arr)
-    # end
-    return svn,tri_mut
+  
+    A=Array(Hitensor,prime(s),s)
+    return reshape(A,2^N,2^N)
+  end
+
+N=2
+step_num=1
+meas_p=0.5
+s = siteinds("Qubit", N)
+psi = productMPS(s, "Up" )
+rho = outer(psi',psi)
+
+
+row = make_row(N,Bool(step_num%2),false)
+gates = ITensor[]
+for j in row
+    s1 = s[j[1]]
+    s2 = s[j[2]]
+    hj = op("Rand",[s1,s2])
+    Gj=hj
+    push!(gates, Gj)
 end
-function do_trials(N,steps,meas_p,trials)
-    svn_trials,tri_trials = do_exp(N,steps,meas_p)
-    for i in 2:trials
-        print(i)
-        nSvn,ntm = do_exp(N,steps,meas_p)
-        svn_trials = 2*mean([(i-1)/i*svn_trials,1/i*nSvn])
-        tri_trials = 2*mean([(i-1)/i*tri_trials,1/i*ntm])
+cutoff = 1E-15
 
-        
-    end
-    return svn_trials,tri_trials
-end
+psi = apply(gates, psi; cutoff)
+rho = apply(gates, rho; apply_dag=true, cutoff)
 
-decays=[]
-sits = [6,8]
-interval = 0.0:0.1:1
-for n in sits#[6,8,10]
-N = n
-# cutoff = 1E-8
-steps = 4*N
-meas_p=0.
-svns=[]
-mut = []
-    for i in interval
-        print("\n meas_p $i \n")
-        svn,tri_mut =do_trials(N,steps,i,50)
-        avgsvn = [(svn[x]+svn[x+1])/2 for x in 1:2:(size(svn)[1]-1)]
-        append!(svns,[avgsvn])
-        append!(mut,tri_mut)
+rhoc=outer(psi',psi)
+isapprox(rho_to_dense(rho,s),rho_to_dense(rhoc,s))
+
+#sample as needed
+samp_row=gen_samp_row(N,meas_p)
+
+psim=deepcopy(psi)
+for (i,x) in enumerate(samp_row)
+    if Bool(x)
+        psim = samp_mps(psim,s,i)
     end
-decay = [svns[i][end] for i in 1:size(svns)[1]]
-append!(decays,[decay])
 end
 
+rhom=samp_mps(rho,s,samp_row)
 
-p = plot(real(svns),title=string("Gate Rand", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([interval...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-p = plot([0.0:0.1:1...],decays,title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([6:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-# # m = plot(real(mut))
-# display(p)
+rhocm=outer(psim',psim)
+rho_to_dense(rhom,s)
+rho_to_dense(rhocm,s)
 
+isapprox(rho_to_dense(rhom,s),rho_to_dense(rhocm,s))
 
-py"""
-import numpy as np
-import scipy
-L=$sits
-interval = $interval#[x/10 for x in range(9)]
-tot_vonq = $decays
-def xfunc(p,l,pc,v):
-    return (p-pc)*l**(1/v)
+function samp_mps(rho::MPO,s,samp_row)
+    #=
+    sample an itensor mpo and return the next resulting mps
+    =#
+    N = length(rho)
+    samp =deepcopy(rho)
+    samples= sample(samp)
+    magz = [x == 1 ? "Pup" : "Pdn" for x in samples]
+  
+    gates = ITensor[]
+  
+    for i in 1:N
+      if Bool(samp_row[i])
+          hj = op(magz[i],s[i])
+          push!(gates, hj)
+      end
+    end
+    rho = apply(gates, rho;apply_dag=true)
+   
+    rho=rho/tr(rho)
+    return rho
+  end
 
-def Spc(pc,l):
-    spot, = np.where(np.array(L)==l)
-    return np.interp(pc,interval,tot_vonq[spot[0]])
-
-def yfunc(p,l,pc):
-    spot, = np.where(np.array(L)==l)
-
-    a=np.interp(p,interval,tot_vonq[spot[0]])
-    b = Spc(pc,l)
-    return  a-b 
-
-def mean_yfunc(p,pc):
-    return np.mean([yfunc(p,l,pc) for l in L])
-    from scipy.optimize import minimize
-
-def R(params):
-    pc,v = params
-    #sum over all the square differences
-    x_vals = [[xfunc(p,l,pc,v) for p in interval] for l in L]
-    y_vals = [[yfunc(p,l,pc) for p in interval] for l in L]
-
-    min_x = np.max([x[0] for x in x_vals]) #max for smallest value st all overlap
-    max_x = np.min([x[-1] for x in x_vals]) # min again to take overlap
-    xi = np.linspace(min_x,max_x)
-    mean_x_vals = np.mean(x_vals,axis=0)
-    mean_y_vals = [mean_yfunc(p,pc) for p in interval]
-    
-    def mean_y(x):
-        return np.interp(x,mean_x_vals,mean_y_vals)
-    
-    return np.sum([[(np.interp(x,x_vals[i],y_vals[i]) - mean_y(x))**2 for x in xi] for i in range(len(L))]) 
-initial_guess = [0.0,0.1]
-res = scipy.optimize.minimize(R, initial_guess)
-    
-"""
-
-
-ppc,vv=py"res.x"
-
-py"""
-ppc,vv=res.x
-x_vals = [[xfunc(p,l,ppc,vv) for p in interval] for l in L]
-y_vals = [[yfunc(p,l,ppc) for p in interval] for l in L]
-# mean_y_vals = [mean_yfunc(p,0.26) for p in interval]
-"""
-plot(transpose(py"x_vals"),transpose(py"y_vals"),linewidth=3)
+p = plot([0.0:0.1:0.8...],decays,title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([6:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+p = plot([0.0:0.1:0.8...],real(growths),title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([6:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn

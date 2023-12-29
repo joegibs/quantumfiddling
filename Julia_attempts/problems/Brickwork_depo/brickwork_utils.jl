@@ -98,7 +98,6 @@ function samp_mps(rho,s,samp_row)
   =#
   N = length(rho)
   samp =deepcopy(rho)
-  samp = samp/tr(samp)
   samples= sample(samp)
   magz = [x == 1 ? "Pup" : "Pdn" for x in samples]
 
@@ -132,22 +131,18 @@ function gen_step(N,rho,s,step_num,meas_p,noise,noise_type,meas_during)
       push!(gates, Gj)
   end
   cutoff = 1E-8
+  rho = apply(gates, rho;apply_dag=true,cutoff=1E-15)
+  #calculate obs
   if meas_during
     measured_vals = (rec_ent(rho,Int(round(N/2)),s),log_negativity(rho,Int(round(N/2)),s))
   end
-  rho = apply(gates, rho;apply_dag=true,cutoff=1E-8)
 
-  #calculate obs
-  rho=rho/tr(rho)
   #noise channel
   if noise_type=="damp"
     rho = kraus_amp_damp(rho,s,noise)
   elseif noise_type=="deph"
     rho = kraus_dephase(rho,s,noise)
   end
-
-  rho=rho/tr(rho)
-
   #sample as needed
     
 
@@ -169,14 +164,7 @@ function do_exp(N,steps,meas_p,noise,noise_type)
         rho ,(meas_svn,meas_neg)= gen_step(N,rho,s,i,meas_p,noise,noise_type)
         append!(svn,meas_svn)
         append!(neg,meas_neg)
-      #   @show(tr(rho))
     end
-    #tri_mut = tri_part_MI(psi,[1,2],[3,4],[5,6])
-    
-    # for i in 3:length(psi)-1s
-    #     arr = two_point_MI(psi,2,i)
-    #     append!(tri_mut,arr)
-    # end
     return svn,neg
   end
 function do_exp(N,steps,meas_p,noise,noise_type,meas_during)

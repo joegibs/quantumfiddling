@@ -22,7 +22,7 @@ function plot_fldr(fldr)
     end
     growths=growths/i
     decays=decays/i
-    # popfirst!(interval2)
+    # # popfirst!(interval2)
     # popfirst!(sits2)
     # popfirst!(decays)
     # popfirst!(growths)
@@ -120,7 +120,7 @@ end
 
 
 let 
-    fldr = "/Users/joeg/Documents/GitHub/quantumfiddling/Julia_attempts/problems/Brickwork_depo/2023_12_25_0_468"
+    fldr = "/Users/joeg/Documents/GitHub/quantumfiddling/Julia_attempts/problems/Brickwork_depo/2023_12_27_0_468"
     plot_fldr(fldr)
 end
 

@@ -69,6 +69,42 @@ function log_negativity(A::MPO, b, s)
   return log2(2*neg+1)
 end
 
+# function rec_ent(rho::MPO,b,s)
+#   #=
+#   Bipartite entropy across b for itensor mpo
+#   =#
+#   n = length(rho)
+#   # orthogonalize!(rho,b)
+#   rho_temp = deepcopy(rho)
+#   # s = siteinds("Qubit",n) 
+
+#   #contract half   x x x x | | | |
+#   L = ITensor(1.0)
+#     for i = 1:b
+#       L *= tr(rho_temp[i])
+#     end
+#     # absorb
+#     rho_temp[b+1] *= L
+#     # no longer a proper mpo
+#     M =MPO(n-b)
+#     for i in 1:(n-b)
+#         M[i]=rho_temp[b+i]
+#     end
+#     M=M/tr(M)
+#     #turn this mpo into a single tensor
+#     SvN = -log2(tr(apply(M,M)))
+#   #   # @show T
+#   #   _,S,_ = svd(T,s)#[inds(T)[i] for i = 1:2:length(inds(T))])
+#   #   SvN = 0.0
+#   #   for n in 1:dim(S, 1)
+#   #     p = S[n,n]
+#   #     if p != 0
+#   #       SvN -= p * log2(p)
+#   #     end
+#   # end
+#   return SvN
+# end
+
 function rec_ent(rho::MPO,b,s)
     #=
     Bipartite entropy across b for itensor mpo

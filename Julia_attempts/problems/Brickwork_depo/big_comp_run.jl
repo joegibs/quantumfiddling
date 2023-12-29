@@ -14,12 +14,12 @@ pwd()
 
 #create data
 let
-    sits = [4 6 8];
-    interval = 0.1:0.005:0.8;
-    num_samp=20;
+    sits = [4 6];
+    interval = 0.1:0.05:0.8;
+    num_samp=10;
     noise_val=0.000;
     fld = Dates.format(now(), "YYYY_mm_dd")
-    fld = fld * "_0_468"
+    fld = fld * "_0_dumb"
     if !isdir(fld)
         mkdir(fld)
     end

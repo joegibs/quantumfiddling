@@ -1,14 +1,17 @@
 using ITensors
 using Printf
 
-function rec_ent(rho,b,s)
-    n = length(rho)
-    # orthogonalize!(rho,b)
-    rho_temp = deepcopy(rho)
-    # s = siteinds("Qubit",n) 
+function rec_ent(rho::MPO,b,s)
+  #=
+  Bipartite entropy across b for itensor mpo
+  =#
+  n = length(rho)
+  # orthogonalize!(rho,b)
+  rho_temp = deepcopy(rho)
+  # s = siteinds("Qubit",n) 
 
-    #contract half   x x x x | | | |
-    L = ITensor(1.0)
+  #contract half   x x x x | | | |
+  L = ITensor(1.0)
     for i = 1:b
       L *= tr(rho_temp[i])
     end
@@ -19,33 +22,36 @@ function rec_ent(rho,b,s)
     for i in 1:(n-b)
         M[i]=rho_temp[b+i]
     end
+    M=M/tr(M)
     #turn this mpo into a single tensor
     T = prod(M)
  
-    @show T
-    @show s
-    _,S,_ = svd(T,s)
+    # @show T
+    _,S,_ = svd(T,s)#[inds(T)[i] for i = 1:2:length(inds(T))])
     SvN = 0.0
-    @show S
     for n in 1:dim(S, 1)
-      p = S[n,n]^2
+      p = S[n,n]
       if p != 0
         SvN -= p * log2(p)
       end
-    end
-    return SvN
+  end
+  return real(SvN)
 end
+
 function ren(rho)
   return -log(tr(apply(rho,rho)))
 end
+
 function split_ren(rho,b)
-  n = length(rho)
+  n= length(rho)
+  # orthogonalize!(rho,b)
   rho_temp = deepcopy(rho)
-  s = siteinds("Qubit",n) 
+  # s = siteinds("Qubit",n) 
 
   #contract half   x x x x | | | |
   L = ITensor(1.0)
   for i = 1:b
+    @show(i)
     L *= tr(rho_temp[i])
   end
   # absorb
@@ -53,12 +59,26 @@ function split_ren(rho,b)
   # no longer a proper mpo
   M =MPO(n-b)
   for i in 1:(n-b)
+    @show(b+i)
       M[i]=rho_temp[b+i]
   end
+
   ren = -log2(tr(apply(M,M)))
   return ren
 end
 
+function rec_ent(psi::MPS,b,s)  
+  orthogonalize!(psi, b)
+  _,S = svd(psi[b], (linkind(psi, b-1), s[b]))
+  SvN = 0.0
+  for n in 1:dim(S, 1)
+    p = S[n,n]^2
+    if p != 0
+      SvN -= p * log2(p)
+    end
+  end
+  return SvN
+end
 function RandomUnitaryMatrix(N::Int)
   x = (rand(N,N) + rand(N,N)*im) / sqrt(2)
   f = qr(x)
@@ -118,7 +138,7 @@ push!(gates, hj)
 
 cutoff = 1E-8
 
-rho = apply(gates, rho; apply_dag=true, cutoff = 1E-8)
+rho = apply(gates, rho; apply_dag=true, cutoff = 1E-15)
 psi = apply(gates,psi1)
 # rho = apply(rho, rho; cutoff)
 
@@ -218,13 +238,13 @@ rho = apply(gates, rho; apply_dag=true)
 psi = apply(gates,psi1)
 # rho = apply(rho, rho; cutoff)
 
-rec_ent(rho,2)
+rec_ent(rho,2,s)
 split_ren(rho,2)
 rec_ent_mps(psi,2)
 
 rho2 = outer(psi',psi)
 
-rec_ent(rho2,2)
+rec_ent(rho2,2,s)
 rec_ent_mps(rho2,2)
 
 psi2=randomMPS(s)

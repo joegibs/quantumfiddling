@@ -7,7 +7,7 @@ using PyCall
 using LaTeXStrings
 
 
-function main(sits = [4,6],interval = 0.0:0.05:1,num_samp=100,noise=0.0,noise_type="deph")
+function main(sits = [4,6],interval = 0.1:0.1:0.8,num_samp=10,noise=0.0,noise_type="deph")
     decays=[]
     growths = []
     for n in sits#[6,8,10]
@@ -33,9 +33,9 @@ function main(sits = [4,6],interval = 0.0:0.05:1,num_samp=100,noise=0.0,noise_ty
     return [sits,interval,num_samp,noise,decays,growths]
 end
 
-# p = plot(real(svns),title=string("Gate Rand", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([interval...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-# p = plot([0.0:0.05:1...],decays,title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-# p = plot([0.0:0.05:1...],real(growths),title=string("Bip_Neg Gat: 2haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{N_{vn}}(L/2)$")
+# p = plot÷(real(svns),title=string("Gate Rand", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([interval...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+p = plot([0.1:0.1:0.8...],real(decays),title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+p = plot([0.1:0.1:0.8...],real(growths),title=string("Bip_Neg Gat: 2haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{N_{vn}}(L/2)$")
 
 # sits=[4,6,8]
 # py"""

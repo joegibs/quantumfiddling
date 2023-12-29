@@ -41,12 +41,47 @@ function rec_ent(psi,b,s)
     for n in 1:dim(S, 1)
       p = S[n,n]^2
       if p != 0
-        SvN -= p * log(p)
+        SvN -= p * log2(p)
       end
     end
     return SvN
 end
-
+function rec_ent_rho(rho::MPO,b,s)
+    #=
+    Bipartite entropy across b for itensor mpo
+    =#
+    n = length(rho)
+    # orthogonalize!(rho,b)
+    rho_temp = deepcopy(rho)
+    # s = siteinds("Qubit",n) 
+  
+    #contract half   x x x x | | | |
+    L = ITensor(1.0)
+      for i = 1:b
+        L *= tr(rho_temp[i])
+      end
+      # absorb
+      rho_temp[b+1] *= L
+      # no longer a proper mpo
+      M =MPO(n-b)
+      for i in 1:(n-b)
+          M[i]=rho_temp[b+i]
+      end
+      M=M/tr(M)
+      #turn this mpo into a single tensor
+      T = prod(M)
+   
+      # @show T
+      _,S,_ = svd(T,s)#[inds(T)[i] for i = 1:2:length(inds(T))])
+      SvN = 0.0
+      for n in 1:dim(S, 1)
+        p = S[n,n]
+        if p != 0
+          SvN -= p * log2(p)
+        end
+    end
+    return real(SvN)
+end
 function split_ren(psi,b)
     rho=outer(psi',psi)
     n = length(rho)
@@ -209,11 +244,12 @@ function gen_step(N,psi,s,step_num,meas_p)
         Gj=hj
         push!(gates, Gj)
     end
-    cutoff = 1E-8
+    cutoff = 1E-15
 
     psi = apply(gates, psi; cutoff)
     #calculate obs
-    measured_vals = rec_ent(psi,Int(round(N/2)),s)
+    rho = outer(psi',psi)
+    measured_vals = (rec_ent(psi,Int(round(N/2)),s),rec_ent_rho(rho,Int(round(N/2)),s))
     
     #metts shenanagins
     # psi = metts(psi,s)
@@ -232,17 +268,20 @@ function do_exp(N,steps,meas_p)
     psi = productMPS(s, "Up" )
 
     svn =[]
+    svnrho=[]
     for i in 1:steps
-        psi ,meas_svn= gen_step(N,psi,s,i,meas_p)
+        psi ,meas= gen_step(N,psi,s,i,meas_p)
+        meas_svn=meas[1]
+        meas_rho=meas[2]
         append!(svn,meas_svn)
+        append!(svnrho,meas_rho)
     end
     #tri_mut = tri_part_MI(psi,[1,2],[3,4],[5,6])
-    tri_mut = []
     # for i in 3:length(psi)-1
     #     arr = two_point_MI(psi,2,i)
     #     append!(tri_mut,arr)
     # end
-    return svn,tri_mut
+    return svn,svnrho
 end
 function do_trials(N,steps,meas_p,trials)
     svn_trials,tri_trials = do_exp(N,steps,meas_p)
@@ -258,29 +297,36 @@ function do_trials(N,steps,meas_p,trials)
 end
 
 decays=[]
-sits = [6,8]
-interval = 0.0:0.1:1
+growths=[]
+sits = [4,6]
+interval = 0.0:0.1:0.8
 for n in sits#[6,8,10]
 N = n
 # cutoff = 1E-8
 steps = 4*N
 meas_p=0.
 svns=[]
-mut = []
+muts = []
     for i in interval
         print("\n meas_p $i \n")
-        svn,tri_mut =do_trials(N,steps,i,50)
+        svn,mut =do_trials(N,steps,i,10)
         avgsvn = [(svn[x]+svn[x+1])/2 for x in 1:2:(size(svn)[1]-1)]
+        avgmut = [(mut[x]+mut[x+1])/2 for x in 1:2:(size(mut)[1]-1)]
         append!(svns,[avgsvn])
-        append!(mut,tri_mut)
+        append!(muts,[avgmut])
     end
 decay = [svns[i][end] for i in 1:size(svns)[1]]
+growth = [muts[i][end] for i in 1:size(muts)[1]]
 append!(decays,[decay])
+append!(growths,[growth])
+
 end
 
 
 p = plot(real(svns),title=string("Gate Rand", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([interval...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-p = plot([0.0:0.1:1...],decays,title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([6:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+p = plot([0.0:0.1:0.8...],decays,title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([6:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+p = plot([0.0:0.1:0.8...],real(growths),title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([6:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+
 # # m = plot(real(mut))
 # display(p)
 
