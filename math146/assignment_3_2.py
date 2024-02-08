@@ -56,9 +56,9 @@ plt.show()
 """
 Question 2: point wise evaluation plotted with a shift
 """
-ep = 1/180 
+ep = 10/180 
 thp = np.linspace(0, 2*np.pi, length)
-thp2 = thp + np.pi
+thp2 = thp + np.pi/4
 point_w = np.zeros(length, dtype = 'complex')
 
 def p_theta_thetap(th, thp):

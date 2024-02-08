@@ -213,7 +213,7 @@ function samp_mps(rho::MPO,s,samp_row)
 
   #calculate obs
   measured_vals = (rec_ent(rho,Int(round(N/2)),s),log_negativity(rho,Int(round(N/2)),s))
-  rho = kraus_dephase(rho,s,noise)
+  rho = kraus_dephase(rho,s,0.01)
 
   samp_row=gen_samp_row(N,meas_p)
   rho=rho/tr(rho)

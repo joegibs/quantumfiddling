@@ -142,8 +142,40 @@ function rec_ent(rho::MPO,b,s)
     return SvN
 end
 
+#get bond dims of a mpo
+function bond_dim_array(rho)
+  arr=[]
+  for i in rho
+      for j in inds(i)
+          if occursin("Link",string(tags(j)))
+              push!(arr,dim(j))
+          end
+      end
+  end
+  return Int.(arr)
+end
 
+function max_bond_dim(rho)
+  max_dim = maximum(bond_dim_array(rho))
+  return max_dim
+end
 
+#### one pass alg for mean and var
+function welford_mean_var(existing_agg, new_value)
+  (cnt, men, M2)  = existing_agg
+  cnt= cnt+1
+  delta = new_value - men
+  men = men + delta/cnt
+  delta2 = new_value - men
+  M2 = M2 + delta .* delta2
+  return (cnt,men,M2)
+end
+
+function welford_extract(existing_agg)
+  (cnt, men, M2)  = existing_agg
+  (men, variance) = (men, M2 ./ cnt)
+  return (men, variance)
+end
 
 
 
@@ -159,9 +191,11 @@ function open_csv(flname)
   interval = [i for i in m[2]]
   num_samp = m[3]
   noise_val = m[4]
-  decays = [i for i in m[5]]
-  growths = [i for i in m[6]]
-  return sits,interval,num_samp,noise_val,decays,growths
+  Int_Svns_Mean = hcat([i for i in m[5]]...)
+  Int_Negs_Mean = hcat([i for i in m[6]]...)
+  Int_Svns_Var = hcat([i for i in m[7]]...)
+  Int_Negs_Var = hcat([i for i in m[8]]...)
+  return sits,interval,num_samp,noise,Int_Svns_Mean,Int_Negs_Mean,Int_Svns_Var,Int_Negs_Var
 end
 
 function open_csv_purity(flname)

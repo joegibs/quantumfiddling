@@ -47,16 +47,16 @@ def f_bump(xx,yy):
 
 #%%
 #%%
-n=100
+n=1000
 xx,yy=init_space(n)
-xn,yn,zn=composition(xx,yy,T_rotation,f_bump,**{'a1':np.sqrt(3),'a2':np.sqrt(7)})
+xn,yn,zn=composition(xx,yy,T_rotation,f_bump,**{'a1':1/2,'a2':1/2})
                                               
 h = plt.contourf(xx,yy, zn)
 plt.axis('scaled')
 plt.colorbar()
 plt.show()
 #%%
-n=100
+n=1000
 xx,yy=init_space(n)
 xn,yn,zn=composition(xx,yy,T_cat_map,f_bump,**{'A':np.array([[2,1],[1,1]])})
           
@@ -74,7 +74,7 @@ import matplotlib.animation as animation
 #%%
 plt.close('all') # Clear anything left over from prior runs.
 
-Nt=400
+Nt=40
 bound=1
 
 xx,yy=init_space(100)

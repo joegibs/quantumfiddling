@@ -314,7 +314,7 @@ rhocm=outer(psim',psim)
 rho_to_dense(rhom,s)
 rho_to_dense(rhocm,s)
 
-isapprox(rho_to_dense(rhom,s),rho_to_dense(rhocm,s))
+isapprox(rho_to_dense(rhom,s),)
 
 function samp_mps(rho::MPO,s,samp_row)
     #=
@@ -339,5 +339,25 @@ function samp_mps(rho::MPO,s,samp_row)
     return rho
   end
 
-p = plot([0.0:0.1:0.8...],decays,title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([6:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-p = plot([0.0:0.1:0.8...],real(growths),title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([6:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn
+###############
+
+N=2
+step_num=1
+meas_p=0.5
+s = siteinds("Qubit", N)
+psi = productMPS(s, "Up" )
+rho = outer(psi',psi)
+
+gates = ITensor[]
+for i in 1:2
+    s1=s[i]
+    hj = op("Sx",s1)
+    Gj=hj
+    push!(gates, Gj)
+end
+cutoff = 1E-15
+tr(apply(gates,rho))
+psi = apply(gates, psi; cutoff)
+rho = apply(gates, rho; apply_dag=true, cutoff)
+
+

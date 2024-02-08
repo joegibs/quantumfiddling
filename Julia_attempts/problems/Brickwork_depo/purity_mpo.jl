@@ -26,9 +26,10 @@ function main(N= 6, depth = 5, num_samp=2, noise_int = 0:0.1:0.5, meas_int = 0:0
                 for _ in 1:depth
                     samp_row = gen_samp_row(N,meas_p)
                     rho = samp_mps(rho,s,samp_row)
-                    rho = kraus_dephase(rho,s,noise)
+                    # rho = kraus_dephase(rho,s,noise)
                 end
                 #get data at end
+                @show(max_bond_dim(rho))
                 pur_arr = [purity(rho)]
 
                 if length(fin_arr) == 0
@@ -44,7 +45,7 @@ function main(N= 6, depth = 5, num_samp=2, noise_int = 0:0.1:0.5, meas_int = 0:0
     return [N,depth,num_samp,noise_int,meas_int,purity_arr]
 end
 
-function main_brick(N= 6, depth = 5, num_samp=2, noise_int = 0:0.1:0.5, meas_int = 0:0.1:0.3)
+function main_brick(N= 6, depth = 5, num_samp=10, noise_int = 0:0.1:1, meas_int = 0:0.1:1)
     #sweep noise and meas_p look at purity at end only but with brickwork this time
        purity_arr = zeros((length(noise_int),length(meas_int)))
        tot_arr=[]
@@ -72,11 +73,13 @@ function main_brick(N= 6, depth = 5, num_samp=2, noise_int = 0:0.1:0.5, meas_int
                             push!(gates, Gj)
                         end
                         rho = apply(gates, rho;apply_dag=true,cutoff=1E-8)
-
+                        rho = rho/tr(rho)
                         rho = samp_mps(rho,s,samp_row)
                         rho = kraus_dephase(rho,s,noise)
+                        # rho = kraus_amp_damp(rho,s,noise)
                    end
                    #get data at end
+                   @show(max_bond_dim(rho))
                    pur_arr = [purity(rho)]
    
                    if length(fin_arr) == 0
@@ -92,6 +95,6 @@ function main_brick(N= 6, depth = 5, num_samp=2, noise_int = 0:0.1:0.5, meas_int
        return [N,depth,num_samp,noise_int,meas_int,purity_arr]
    end
 
-# dat = main_brick()
+dat = main_brick(6, 12, 5, [0.0 0.25 0.5], 0:0.5:1)
 # (N,depth,averages,noise_int,meas_int,purity_arr)=dat
-# contour(meas_int,noise_int,purity_arr,xlabel = "meas", ylabel = "noise",title=string("Purity sites:$N, Depth:$depth"),fill=true,levels=20, color=:turbo)
+contour(meas_int,noise_int,purity_arr,xlabel = "meas", ylabel = "noise",title=string("Purity sites:$N, Depth:$depth"),fill=true,levels=20, color=:turbo)

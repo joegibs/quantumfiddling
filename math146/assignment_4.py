@@ -113,7 +113,7 @@ def gen_u_and_f(alpha,kappa,L,T):
         
     return U,f
 #%%
-alpha = 1
+alpha = 2
 
 U,f = gen_u_and_f(alpha,kappa,L,T_rotation)
 New_G = np.conjugate(U) @ A_L @ U

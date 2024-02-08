@@ -14,7 +14,7 @@ import quimb.tensor as qtn
 def phi_i(l,theta):
     return np.exp(1j*l*theta)
 #%%
-L=2
+L=4
 kappa=8
 def gen_A_L(L,kappa):
     #Toeplitz matrix of the expansion coefficients
@@ -43,7 +43,7 @@ for i,eigvec in enumerate(eigvecs.T):
 """
 Question 1, your code had a fancy slide i just have a variable to select which eigen val
 """
-x=16
+x=8
 
 plt.plot(theta,ets[x])
 plt.show()
@@ -148,12 +148,13 @@ Need to split the A_L and the U matricies into MPS and MPOs
 """
 get next power of two
 """
-p2 = 8
+p2 = 16
 """
 pad a_L with zeros
 """
 A_L_pad = np.lib.pad(A_L,(p2-(2*L+1),0))
 U_pad = np.lib.pad(U,(p2-(2*L+1),0))
+#%%
 """
 create a padded identity matrix
 """
@@ -164,7 +165,7 @@ merge!
 """
 A_L_TOT = A_L_pad
 U_TOT = U_pad
-
+#%%
 size=np.prod(np.shape(A_L_TOT))
 length_1 = np.log(size)/np.log(2)
 dims = [2]*int(length_1)

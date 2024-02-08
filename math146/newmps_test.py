@@ -1,13 +1,25 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+Created on Wed Feb  7 19:03:07 2024
+
+@author: joeg
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from scipy.stats import vonmises as vonmises
-import scipy.integrate as integrate
 from scipy.special import iv as bessel
-#%%
 
+from matplotlib.animation import FuncAnimation
+import matplotlib.animation as animation
+
+from quimb import *
+import quimb.tensor as qtn
+
+#%%
 def composition(theta, T, f, **kwargs):
     thetan = T(theta, **kwargs)
     zn = f(thetan, **kwargs)
@@ -39,18 +51,6 @@ def f_vonmis(theta, **kwargs):
     else:
         return vonmises(1).pdf(theta)
 #%%
-T=T_rotation
-f = f_vonmis
-kwargs={"alpha": np.pi / 2, "kappa": 1}
-angle = np.linspace(0, 2 * np.pi, 300)
-
-radius = 1
-
-yarg, colors = composition(angle, T, f, **kwargs)
-#%%
-"""
-define some functions for discritization
-"""
 def phi_i(l, theta):
     return np.exp(1j * l * theta)
     # return np.cos(l*theta)+1j*np.sin(l*theta)
@@ -93,74 +93,37 @@ def gen_u_and_f(alpha,kappa,L,T):
         # print(abs(lplus1_space(ij[0])))
         ans = bessel(abs(lplus1_space(ij[0])), kappa) / bessel(0, kappa)
         f[ij] = ans
-        
+    f= f/np.linalg.norm(f)
     return U,f
-#%%
-"""
-Generate the A_L matrix
-"""
-L=3
-kappa=1
-def gen_A_L(L,kappa):
-    #Toeplitz matrix of the expansion coefficients
-    A_L=np.zeros((2*L+1,2*L+1))
-    for ij in range(-2*L,2*L+1):
-        ans = bessel(np.abs(ij), kappa) / bessel(0, kappa)
-        A_L+=np.diag([ans]*(2*L-abs(ij)+1),ij)
-    return A_L
-A_L=gen_A_L(L,kappa)
-
-eigval,eigvecs=np.linalg.eigh(A_L)
-#%%
-"""
-Next, make histograms of the set of eigenvalues aj of AL (i.e., the spectrum of the operator
-AL ∈B(HL)) for various values of L
-"""
-# def plot_loghist(x, bins):
-#   hist, bins = np.histogram(x, bins=bins)
-#   # print(bins)
-#   logbins = np.logspace(np.log10(bins[0]),np.log10(bins[-1]),len(bins))
-#   plt.hist(x, bins=logbins)
-#   plt.xscale('log')
-
-# plot_loghist(eigval,100)
-
-plt.hist(eigval,bins=100)
-#%%
-"""
-Compare your histograms with histograms for the values f(θ)
-of f (i.e., the spectrum of f as an element of L∞(μ)) obtained by sampling θ from the Lebesgue
-measure on S1.
-"""
-samp = np.random.rand(500)*2*np.pi
-def f_theta(theta):
-    thing = np.exp(kappa*np.cos(theta)) / bessel(0, kappa)
-    return thing
-thing = f_theta(samp)
-plt.hist(thing, bins= 100)
-#%%
-"""
-In addition, for representative L and j, reconstruct the functions ηj = PL
-l=−L uljφl
-on S1 associated with eigenvector uj. What do you observe as L increases
-"""
-length = 1000
-theta = np.linspace(0,2*np.pi,length)
-tot = np.zeros(length,dtype='complex')
-# eta = [expan for i in range(2*L+1)]
-
-for i,eigvec in enumerate(eigvecs):
-    expan = np.zeros_like(theta, dtype="complex")
-    phi = phi_i(lplus1_space(i), theta)
-    for j,val in enumerate(eigvec):
-        expan += val * phi
-    tot+=expan
-#%%
-plt.plot(theta,np.real(tot))
-plt.plot(theta,f_vonmis(theta,**{'kappa':kappa}))
 
 #%%
-"""
-Write code that implements RL for the von Mises kernel from (3) or another kernel of your
-choice. 
-"""
+
+alpha = -2*np.pi/2
+kappa = 100
+L=8
+angle = np.linspace(0, 2*np.pi, 300)
+
+_, colors = composition(angle, T_rotation, f_vonmis, **{"alpha": alpha, "kappa": kappa})
+
+U,f = gen_u_and_f(alpha,kappa,L,T_rotation)
+g = calculate_g(U,f)
+
+colorsd = basis_expansion(g, phi_i, angle).real/(np.pi*2)
+f=f/np.linalg.norm(f)
+colorsf = basis_expansion(f, phi_i, angle).real/(np.pi*2)
+fig, axs = plt.subplots(2)
+fig.suptitle(f'Discritized vs Continuous transformation, alpha = {alpha}, kappa = {kappa}')
+
+axs[0].plot(angle, colors)
+axs[0].set_title('Continuous')
+axs[0].set_xlabel('')
+axs[1].plot(angle, colorsd)
+axs[1].set_title('Discrete')
+axs[1].plot(angle, colorsf)
+axs[1].set_title('Discrete')
+
+plt.show()
+
+#%% ok continuous to discrete works can i f into an mps
+mps_f = qtn.MatrixProductState.from_dense(f,[2*L+1])
+mps_U = qtn.MatrixProductOperator.from_dense(U,(2*L+1))

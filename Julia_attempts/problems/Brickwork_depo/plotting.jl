@@ -1,27 +1,49 @@
 
+include("func_utils.jl")
 
 function plot_fldr(fldr)
-    growths=[]
-    decays =[]
-    sits2=0;interval2=0;num_samp2=0;noise_val2=0;
+    Int_Svns_Mean=[]
+    Int_Negs_Mean = []
+    Int_Svns_Var=[]
+    Int_Negs_Var = []
+    sits2=0;interval2=0;num_samp_rolling=0;noise_val2=0;
     i=1
     for fle in readdir(fldr)
         # @show(fldr*'/'*fle)
         if i==1
-            sits2,interval2,num_samp2,noise_val2,decays2,growths2 = open_csv(fldr*'/'*fle)
-            growths = growths2
-            decays = decays2
+            sits2,interval2,num_samp2,noise_val2,Int_Svns_Mean2,Int_Negs_Mean2,Int_Svns_Var2,Int_Negs_Var2 = open_csv(fldr*'/'*fle)
+            Int_Svns_Mean = Int_Svns_Mean2
+            Int_Negs_Mean = Int_Negs_Mean2
+            Int_Svns_Var = Int_Svns_Var2
+            Int_Negs_Var = Int_Negs_Var2
+
+            num_samp_rolling += num_samp2
         else
-            sits2,interval2,num_samp2,noise_val2,decays2,growths2 = open_csv(fldr*'/'*fle)
+            sits2,interval2,num_samp2,noise_val2,Int_Svns_Mean2,Int_Negs_Mean2,Int_Svns_Var2,Int_Negs_Var2 = open_csv(fldr*'/'*fle)
             # show(length(growths))
-            growths = growths+growths2#2*mean([(i-1)/i*growths,1/i*growths2])
-            decays = decays+decays2#2*mean([(i-1)/i*decays,1/i*decays2])
+
+            #calculate mean
+
+            svn_avg_temp = (num_samp_rolling .* Int_Svns_Mean + num_samp2 .* Int_Svns_Mean2) ./ (num_samp_rolling + num_samp2)
+            neg_avg_temp = (num_samp_rolling .* Int_Negs_Mean + num_samp2 .* Int_Negs_Mean2) ./ (num_samp_rolling + num_samp2)
+
+            #calculate variance
+            Int_Svns_Var = (num_samp_rolling .* (Int_Svns_Var + Int_Svns_Mean.^2)+num_samp2 .* (Int_Svns_Var2 + Int_Svns_Mean2.^2))./ (num_samp_rolling + num_samp2) - svn_avg_temp.^2
+            Int_Negs_Var = (num_samp_rolling .* (Int_Negs_Var + Int_Negs_Mean.^2)+num_samp2 .* (Int_Negs_Var2 + Int_Negs_Mean2.^2))./ (num_samp_rolling + num_samp2) - neg_avg_temp.^2
+            
+            Int_Svns_Mean = svn_avg_temp
+            Int_Negs_Mean = neg_avg_temp
+
+            num_samp_rolling +=num_samp2
+
         end
-        # @show(noise_val2)
         i=i+1
     end
-    growths=growths/i
-    decays=decays/i
+    #part of old meme
+    # growths=growths/i
+    # decays=decays/i
+
+
     # # popfirst!(interval2)
     # popfirst!(sits2)
     # popfirst!(decays)
@@ -35,22 +57,28 @@ function plot_fldr(fldr)
     # @show size(growths)
     
     # grw2 = real(growths2)
-    @show(string.(transpose(sits2)))
-    for i in real(growths)
-        @show(maximum(i))
-    end
+    # @show(string.(transpose(sits2)))
+    # for i in real(Int_Negs_Mean)
+    #     @show(maximum(i))
+    # end
     hyup = basename(fldr)
-    p = plot(interval2,real(decays),title=string("Bip_ent Gate: 2haar, varying meas_p $hyup"), label=string.(transpose(sits2)), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
+    @show Int_Svns_Var ./ num_samp
+    svn_errs = sqrt.(Int_Svns_Var ./ num_samp)
+    neg_errs = sqrt.(Int_Negs_Var ./ num_samp)
+
+    p = plot(interval2,real(Int_Svns_Mean),yerr = svn_errs,title=string("Bip_ent Gate: 2haar, varying meas_p $hyup"), label=string.(transpose(sits2)), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$",markerstrokecolor = :auto)
     display(p)
-    pg = plot(interval2,real(growths),title=string("negativity $hyup"), label=string.(transpose(sits2)), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{N_{vn}}(L/2)$")
+    pg = plot(interval2,real(Int_Negs_Mean),yerr = real(neg_errs), title=string("negativity $hyup"), label=string.(transpose(sits2)), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{N_{vn}}(L/2)$",markerstrokecolor = :auto)
     display(pg)
 
+    Int_Svns_Mean=[Int_Svns_Mean[:,c] for c in 1:size(Int_Svns_Mean,2)]
     py"""
     import numpy as np
     import scipy
     L=$sits2
     interval = $interval2#[x/10 for x in range(9)]
-    tot_vonq = np.real($decays)
+    tot_vonq = np.real($Int_Svns_Mean)
+    # weights = np.real($Int_Svns_Var)
     def xfunc(p,l,pc,v):
         return (p-pc)*l**(1/v)
 
@@ -67,7 +95,7 @@ function plot_fldr(fldr)
 
     def mean_yfunc(p,pc):
         return np.mean([yfunc(p,l,pc) for l in L])
-        from scipy.optimize import minimize
+    from scipy.optimize import minimize
 
     def R(params):
         pc,v = params
@@ -85,7 +113,7 @@ function plot_fldr(fldr)
             return np.interp(x,mean_x_vals,mean_y_vals)
         
         return np.sum([[(np.interp(x,x_vals[i],y_vals[i]) - mean_y(x))**2 for x in xi] for i in range(len(L))]) 
-    initial_guess = [0.2,3]
+    initial_guess = [0.,3]
     res = scipy.optimize.minimize(R, initial_guess)
         
     """
@@ -120,7 +148,7 @@ end
 
 
 let 
-    fldr = "/Users/joeg/Documents/GitHub/quantumfiddling/Julia_attempts/problems/Brickwork_depo/2023_12_27_0_468"
+    fldr = "/Users/joeg/Documents/GitHub/quantumfiddling/julia_attempts/problems/Brickwork_depo/2024_01_08_0_6810_test"
     plot_fldr(fldr)
 end
 

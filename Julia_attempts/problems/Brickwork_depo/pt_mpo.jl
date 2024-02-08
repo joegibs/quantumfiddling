@@ -7,35 +7,45 @@ using PyCall
 using LaTeXStrings
 
 
-function main(sits = [4,6],interval = 0.1:0.1:0.8,num_samp=10,noise=0.0,noise_type="deph")
-    decays=[]
-    growths = []
+function main_pt(sits = [4,6,8],interval = 0.0:0.2:0.8,num_samp=10,noise=0.0,noise_type="deph")
+    Int_Svns_Mean=[]
+    Int_Negs_Mean = []
+    Int_Svns_Var=[]
+    Int_Negs_Var = []
     for n in sits#[6,8,10]
         @show("number of sites: ",sits)
         N = n
         # cutoff = 1E-8
         steps = 8*N
         meas_p=0.
-        svns=[]
-        negs = []
+        svns_mean=[]
+        svns_var=[]
+        negs_mean = []
+        negs_var=[]
             for i in interval
                 print("\n meas_p $i \n")
-                svn,neg =do_trials(N,steps,i,num_samp,noise,noise_type,false)
+                svn_mean,svn_var,neg_mean,neg_var =do_trials(N,steps,i,num_samp,noise,noise_type,false)
 
-                append!(svns,svn)
-                append!(negs,neg)
+                append!(svns_mean,svn_mean)
+                append!(svns_var,svn_var)
+                append!(negs_mean,neg_mean)
+                append!(negs_var,neg_var)
             end
-        append!(decays,[svns])
-        append!(growths,[negs])
+        append!(Int_Svns_Mean,[svns_mean])
+        append!(Int_Negs_Mean,[negs_mean])
+        append!(Int_Svns_Var,[svns_var])
+        append!(Int_Negs_Var,[negs_var])
 
         # append!(decays,[decay])
     end
-    return [sits,interval,num_samp,noise,decays,growths]
+    return [sits,interval,num_samp,noise,Int_Svns_Mean,Int_Negs_Mean,Int_Svns_Var,Int_Negs_Var]
 end
 
+# sits,interval,num_samp,noise,Int_Svns_Mean,Int_Negs_Mean,Int_Svns_Var,Int_Negs_Var = main_pt()
+# svn_errs = sqrt.(hcat(Int_Svns_Var...) ./ num_samp)
 # p = plot÷(real(svns),title=string("Gate Rand", ", ", N, " qubit sites, varying meas_p"), label=string.(transpose([interval...])), linewidth=3,xlabel = "Steps", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-p = plot([0.1:0.1:0.8...],real(decays),title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$")
-p = plot([0.1:0.1:0.8...],real(growths),title=string("Bip_Neg Gat: 2haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{N_{vn}}(L/2)$")
+# p = plot([0.0:0.2:0.8...],real(Int_Svns_Mean),yerr = svn_errs,title=string("Bip_ent Gat: 2haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{S_{vn}}(L/2)$",markerstrokecolor = :auto)
+# p = plot([0.0:0.1:0.8...],real(growths),title=string("Bip_Neg Gat: 2haar, varying meas_p"), label=string.(transpose([4:2:14...])), linewidth=3,xlabel = "Meas_P", ylabel = L"$\textbf{N_{vn}}(L/2)$")
 
 # sits=[4,6,8]
 # py"""

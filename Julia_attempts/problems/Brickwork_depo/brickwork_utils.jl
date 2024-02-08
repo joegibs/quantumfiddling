@@ -43,6 +43,7 @@ function kraus_dephase(rho,s,p)
         rho = (1-p)*rho + p*apply(gates,rho;apply_dag=true)
         rho = rho/tr(rho)
     end
+    truncate!(rho)
     return rho
 end
 
@@ -85,11 +86,17 @@ function make_row(N,eoo,pc)
 end
 
 
-function gen_samp_row(N,meas_p)
+function gen_samp_row(N,meas_p,eoo)
     #=
     generate array of bools to sample or not
     =#
-    return [rand()<meas_p ? 1 : 0 for i in 1:N]
+    lst= [rand()<meas_p ? 1 : 0 for i in 1:N]
+    if !eoo
+      #ensure only one chance of measuring after unitary
+      lst[1]=0
+      lst[end]=0
+    end
+    return lst
 end
 
 function samp_mps(rho,s,samp_row)
@@ -146,7 +153,7 @@ function gen_step(N,rho,s,step_num,meas_p,noise,noise_type,meas_during)
   #sample as needed
     
 
-  samp_row=gen_samp_row(N,meas_p)
+  samp_row=gen_samp_row(N,meas_p,Bool(step_num%2))
   rho = samp_mps(rho,s,samp_row)
   rho=rho/tr(rho)
 
@@ -202,12 +209,16 @@ function do_trials(N,steps,meas_p,trials,noise,noise_type)
 end
 
 function do_trials(N,steps,meas_p,trials,noise,noise_type,meas_during)
-    svn_trials,tri_trials = do_exp(N,steps,meas_p,noise,noise_type,meas_during)
+    svn_trials,neg_trials = do_exp(N,steps,meas_p,noise,noise_type,meas_during)
+    svn_egg = (0,zeros(length(svn_trials)),zeros(length(svn_trials)))
+    neg_egg = (0,zeros(length(neg_trials)),zeros(length(neg_trials)))
     for i in 2:trials
         print(i)
         nSvn,ntm = do_exp(N,steps,meas_p,noise,noise_type,meas_during)
-        svn_trials = 2*mean([(i-1)/i*svn_trials,1/i*nSvn])
-        tri_trials = 2*mean([(i-1)/i*tri_trials,1/i*ntm])
+        svn_egg = welford_mean_var(svn_egg,nSvn)
+        neg_egg = welford_mean_var(neg_egg,ntm)
     end
-    return svn_trials,tri_trials
+    svn_mean, svn_var = welford_extract(svn_egg)
+    neg_mean, neg_var = welford_extract(svn_egg)
+    return (svn_mean, svn_var, neg_mean, neg_var) 
 end

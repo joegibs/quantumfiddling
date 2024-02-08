@@ -15,7 +15,7 @@ pwd()
 #create data
 let
     sits = [4 6];
-    interval = 0.1:0.05:0.8;
+    interval = 0.0:0.1:0.8;
     num_samp=10;
     noise_val=0.000;
     fld = Dates.format(now(), "YYYY_mm_dd")
@@ -28,8 +28,8 @@ let
     touch(fld*"/"*flname)
 
     @show num_samp
-    data= @time main(sits,interval,num_samp,noise_val)
-    sits,interval,num_samp,noise_val,decays,growths = data
+    data= @time main_pt(sits,interval,num_samp,noise_val,"deph")
+    sits,interval,num_samp,noise,Int_Svns_Mean,Int_Negs_Mean,Int_Svns_Var,Int_Negs_Var = data
     #Writing contents to the file 
     
     open(fld*"/"*flname, "w") do io 
