@@ -304,6 +304,135 @@ for i in 1:100
 end
 mean(arr_r)
 
+
+#Tcomputational state
+#1 predefined clifford hadamard on CNOT
+#2 cnot thing on start
+#3 random 
+
+arr_r = []
+for i in 1:100
+    N=12
+    steps = 100
+    s = siteinds("Qubit", N) #+1 for ancilla
+    psi = productMPS(s, "Up" )
+
+    #set initial gate
+
+
+    psi = do_exp(N,steps,psi,s)
+    # gates = ITensor[]
+    # for i in 1:2
+    #     s1 = s[i]
+    #     s2 = s[i+1]
+    #     hj = op("CNOT",[s1,s2])
+    #     push!(gates, hj)
+    # end
+    # for i in 1:3
+    #     s1 = s[i]
+    #     hj = op("H",s1)
+    #     push!(gates, hj)
+    # end
+
+    # psi = apply(gates,psi)
+    append!(arr_r,calculate_r(psi))
+
+end
+mean(arr_r)
+
+#h cnot ladder w/ conj
+arr_r = []
+for i in 1:100
+    N=12
+    steps = 100
+    s = siteinds("Qubit", N) #+1 for ancilla
+    psi = productMPS(s, "Up" )
+    gates = ITensor[]
+    for i in 1:N
+        s1 = s[i]
+        hj = op("H",s1)
+        push!(gates, hj)
+    end
+    for i in 1:N-1
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("CNOT",[s1,s2])
+        push!(gates, hj)
+    end
+
+
+    psi = apply(gates,psi)
+
+    psi = do_exp(N,steps,psi,s)
+    gates = ITensor[]
+    for i in 11:-1:1
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("CNOT",[s1,s2])
+        push!(gates, hj)
+    end
+    for i in 1:12
+        s1 = s[i]
+        hj = op("H",s1)
+        push!(gates, hj)
+    end
+
+    psi = apply(gates,psi)
+    append!(arr_r,calculate_r(psi))
+
+end
+mean(arr_r)
+
+#cnots on all w/ conj
+arr_r = []
+for i in 1:100
+    N=12
+    steps = 100
+    s = siteinds("Qubit", N) #+1 for ancilla
+    psi = productMPS(s, "Up" )
+    gates = ITensor[]
+    for i in 1:2:11
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("CNOT",[s2,s1])
+        push!(gates, hj)
+    end
+    for i in 2:2:11
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("CNOT",[s1,s2])
+        push!(gates, hj)
+    end
+
+
+    psi = apply(gates,psi)
+
+
+    #set initial gate
+
+
+    psi = do_exp(N,steps,psi,s)
+    gates = ITensor[]
+    for i in 2:2:11
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("CNOT",[s1,s2])
+        push!(gates, hj)
+    end
+
+    for i in 1:2:11
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("CNOT",[s2,s1])
+        push!(gates, hj)
+    end
+
+    psi = apply(gates,psi)
+    append!(arr_r,calculate_r(psi))
+
+end
+mean(arr_r)
+
 # let
 #random ppgate case with trpk
 arr_r = zeros(21)
