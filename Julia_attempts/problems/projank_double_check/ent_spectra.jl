@@ -433,6 +433,167 @@ for i in 1:100
 end
 mean(arr_r)
 
+### aug 5th tests
+#1had conjugate on 1 2 and 3w/ cnots
+
+arr_r = []
+for i in 1:100
+    N=12
+    steps = 100
+    s = siteinds("Qubit", N) #+1 for ancilla
+    psi = productMPS(s, "Up" )
+    gates = ITensor[]
+    for i in 1:1:3
+        s1 = s[i]
+        hj = op("H",s1)
+        push!(gates, hj)
+    end
+    for i in 1:1:N-1
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("CNOT",[s1,s2])
+        push!(gates, hj)
+    end
+
+
+    psi = apply(gates,psi)
+
+
+    #set initial gate
+
+
+    psi = do_exp(N,steps,psi,s)
+    gates = ITensor[]
+    for i in 1:1:N-1
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("CNOT",[s1,s2])
+        push!(gates, hj)
+    end
+    for i in 1:1:3
+        s1 = s[i]
+        hj = op("H",s1)
+        push!(gates, hj)
+    end
+
+    psi = apply(gates,psi)
+    append!(arr_r,calculate_r(psi))
+
+end
+mean(arr_r)
+
+arr_r = []
+for i in 1:100
+    N=12
+    steps = 100
+    s = siteinds("Qubit", N) #+1 for ancilla
+    psi = productMPS(s, "Up" )
+    gates = ITensor[]
+    for i in 1:1:N
+        s1 = s[i]
+        hj = op("H",s1)
+        push!(gates, hj)
+    end
+    for i in 1:1:2
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("CNOT",[s1,s2])
+        push!(gates, hj)
+    end
+    for i in 4:1:N-1
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("CNOT",[s1,s2])
+        push!(gates, hj)
+    end
+
+    psi = apply(gates,psi)
+    #brickwork
+    psi = do_exp(N,steps,psi,s)
+    gates = ITensor[]
+    for i in 4:1:N-1
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("CNOT",[s1,s2])
+        push!(gates, hj)
+    end
+    for i in 1:1:2
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("CNOT",[s1,s2])
+        push!(gates, hj)
+    end
+    for i in 1:1:N
+        s1 = s[i]
+        hj = op("H",s1)
+        push!(gates, hj)
+    end
+
+    psi = apply(gates,psi)
+    append!(arr_r,calculate_r(psi))
+
+end
+mean(arr_r)
+
+
+####################################
+arr_r = []
+for i in 1:100
+    N=12
+    steps = 100
+    s = siteinds("Qubit", N) #+1 for ancilla
+    states = [isodd(rand(1:10)) ? "Up" : "Dn" for n in 1:N]
+    psi = MPS(s, states)
+    gates=ITensor[]
+    for i in 1:N
+        s1 = s[i]
+        hj = op("Rand1",[s1])
+        push!(gates, hj)
+    end
+    psi = apply(gates,psi)
+
+    gates = ITensor[]
+    for i in 1:2:11
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("CNOT",[s2,s1])
+        push!(gates, hj)
+    end
+    for i in 2:2:11
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("CNOT",[s1,s2])
+        push!(gates, hj)
+    end
+
+
+    psi = apply(gates,psi)
+
+
+    #set initial gate
+
+
+    psi = do_exp(N,steps,psi,s)
+    gates = ITensor[]
+    for i in 2:2:11
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("CNOT",[s1,s2])
+        push!(gates, hj)
+    end
+
+    for i in 1:2:11
+        s1 = s[i]
+        s2 = s[i+1]
+        hj = op("CNOT",[s2,s1])
+        push!(gates, hj)
+    end
+
+    psi = apply(gates,psi)
+    append!(arr_r,calculate_r(psi))
+
+end
+mean(arr_r)
 # let
 #random ppgate case with trpk
 arr_r = zeros(21)
